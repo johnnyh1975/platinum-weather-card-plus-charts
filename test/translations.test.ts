@@ -5,7 +5,7 @@ import { TRANSLATIONS, tCard, tEditor, tZambretti, tWarning, tMoonPhase, tUnit }
 
 const SRC = join(__dirname, '..', 'src');
 const languages = Object.keys(TRANSLATIONS);
-const sections = ['editor', 'card', 'zambretti', 'zambrettiLong', 'warning'] as const;
+const sections = ['editor', 'card', 'zambretti', 'zambrettiLong', 'warning', 'sager', 'moonPhases'] as const;
 
 describe('translation files', () => {
   it('registers every language file that exists on disk', () => {
@@ -39,6 +39,31 @@ describe('translation files', () => {
       }
     });
   }
+
+  it('gives every language either the full compass or none at all', () => {
+    // An empty array is the deliberate fallback to English. A partial one is not: the
+    // card indexes into it by bearing, so a short list returns undefined for most of the
+    // circle. Arrays have no keys, so the section loop above cannot see this.
+    for (const lang of languages) {
+      const dirs = TRANSLATIONS[lang].windDirections;
+      if (dirs.length === 0) continue;
+      expect(dirs, `${lang}.windDirections`).toHaveLength(TRANSLATIONS.en.windDirections.length);
+    }
+  });
+
+  it('localises the speed and rain units of every language not written in Latin script', () => {
+    // km/h and mm read fine on a Latin-script card, so those languages need no block;
+    // a Cyrillic or Hebrew card that keeps them looks half-translated. The rule is the
+    // script, not a list of languages, so the next Cyrillic language is covered too.
+    // (sr shipped without the block once, which is why this exists.)
+    const nonLatin = /[\u0400-\u04FF\u0590-\u05FF]/;
+    for (const lang of languages) {
+      if (!nonLatin.test(Object.values(TRANSLATIONS[lang].card).join(''))) continue;
+      for (const unit of ['km/h', 'mm']) {
+        expect(TRANSLATIONS[lang].units?.[unit], `${lang} has no label for ${unit}`).toBeTruthy();
+      }
+    }
+  });
 
   it('has no empty translations', () => {
     for (const lang of languages) {
