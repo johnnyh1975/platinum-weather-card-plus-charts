@@ -1253,6 +1253,65 @@ get _forecast_type(): string {
     `;
   }
 
+  private _hourlyForecastOptions(): TemplateResult {
+    const hasEntity = !!this._config?.entity_hourly;
+    return html`
+      <label class="label">${this._t("hourly_heading")}</label>
+      <div class="side-by-side">
+        <ha-entity-picker .hass=${this.hass} .value=${this._config?.entity_hourly || ''}
+          .configValue=${'entity_hourly'} @value-changed=${this._valueChangedPicker}
+          .includeDomains=${['weather']}
+          name="entity_hourly" label=${this._t("entity_hourly")} allow-custom-entity>
+        </ha-entity-picker>
+      </div>
+      <div class="help-text">${this._t("entity_hourly_hint")}</div>
+      <div class="help-text">${this._t("hourly_switch_hint")}</div>
+      ${hasEntity ? html`
+      <div class="side-by-side">
+        <div>
+          <ha-input type="number" label=${this._t("hourly_forecast_hours")}
+            .value=${this._config?.hourly_forecast_hours ?? ''}
+            .configValue=${'hourly_forecast_hours'} @change=${this._valueChangedNumber}>
+          </ha-input>
+          <div class="help-text">${this._t("hourly_forecast_hours_hint")}</div>
+        </div>
+        <div>
+          <ha-input type="number" label=${this._t("hourly_forecast_step")}
+            .value=${this._config?.hourly_forecast_step ?? ''}
+            .configValue=${'hourly_forecast_step'} @change=${this._valueChangedNumber}>
+          </ha-input>
+          <div class="help-text">${this._t("hourly_forecast_step_hint")}</div>
+        </div>
+      </div>
+      <div class="side-by-side">
+        <div>
+          <div class="toggle-row">
+            <span class=${this._config?.option_hourly_shade_night !== false ? "pwc-switch active" : "pwc-switch"} .value=${'option_hourly_shade_night'} @click=${this._toggleVisibility}></span>
+            <span class="toggle-label">${this._t("hourly_shade_night")}</span>
+          </div>
+          <div class="help-text">${this._t("hourly_shade_night_hint")}</div>
+        </div>
+        <div>
+          <div class="toggle-row">
+            <span class=${this._config?.option_hourly_precipitation !== false ? "pwc-switch active" : "pwc-switch"} .value=${'option_hourly_precipitation'} @click=${this._toggleVisibility}></span>
+            <span class="toggle-label">${this._t("hourly_precipitation")}</span>
+          </div>
+          <div class="help-text">${this._t("hourly_precipitation_hint")}</div>
+        </div>
+      </div>
+      <div class="side-by-side">
+        <div>
+          <div class="toggle-row">
+            <span class=${this._config?.option_hourly_wind ? "pwc-switch active" : "pwc-switch"} .value=${'option_hourly_wind'} @click=${this._toggleVisibility}></span>
+            <span class="toggle-label">${this._t("hourly_wind")}</span>
+          </div>
+          <div class="help-text">${this._t("hourly_wind_hint")}</div>
+        </div>
+        <div></div>
+      </div>` : html``}
+    `;
+  }
+
   private _sectionWarningsEditor(): TemplateResult {
     return html`
       <div class="side-by-side">
@@ -1998,6 +2057,8 @@ get _forecast_type(): string {
       case 'option_charts':
         subel.push(this._optionChartsEditor());
         break;
+      case 'option_hourly_forecast':
+        return this._hourlyForecastOptions();
       case 'option_global_options':
         subel.push(this._optionGlobalOptionsEditor());
         break;
@@ -2148,6 +2209,26 @@ get _forecast_type(): string {
             </div>
           </div>
         `;
+      case 'hourly_forecast':
+        // A row of its own, but not a section: the hours are a view of the
+        // forecast, so there is nothing to reorder and nothing to hide — which
+        // view shows is the mode select inside.
+        return html`
+          <div class="section-flex">
+            <div class="section-label">
+              <span class=${this._config?.show_section_hourly_forecast === true ? "pwc-switch active" : "pwc-switch"} .value=${'show_section_hourly_forecast'} @click=${this._toggleVisibility}></span>
+              <ha-icon class="section-icon" icon="mdi:clock-outline"></ha-icon>
+              <span class="section-title">${this._t("hourly_heading")}</span>
+            </div>
+            <div>
+              <div class="no-icon"></div>
+              <div class="no-icon"></div>
+              <div class="no-icon"></div>
+              <ha-icon-button class="edit-icon" .value=${'option_hourly_forecast'} .path=${mdiApplicationEditOutline} @click="${this._editSubmenu}">
+              </ha-icon-button>
+            </div>
+          </div>
+        `;
       case 'global_options':
         return html`
           <div class="section-flex">
@@ -2182,6 +2263,11 @@ get _forecast_type(): string {
     htmlConfig.push(this.getConfigBlock('global_options', false, false));
     slots.forEach((slot, index) => {
       htmlConfig.push(this.getConfigBlock(slot, index === 0, index + 1 === slots.length));
+      // Directly beneath the forecast it belongs to, rather than at the end of
+      // the list where nobody would look for it.
+      if (slot === 'daily_forecast') {
+        htmlConfig.push(this.getConfigBlock('hourly_forecast', false, false));
+      }
     });
 
     return html`${htmlConfig}`;

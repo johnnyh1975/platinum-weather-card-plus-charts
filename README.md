@@ -722,7 +722,15 @@ If your station has a rain gauge, point **Rain rate entity** at it too (mm/h). A
 
 The measurement can also correct the condition icon, under **Measurement corrects the icon**. The icon then follows the ordinary cloud bands — clear below 25%, lightly cloudy to 55%, cloudy to 85%, overcast above — rather than the provider's guess.
 
-Only the plain sky icons are touched: rain, snow and fog are things a provider knows about and the sensors cannot see, so those are left alone — unless the measurement flatly contradicts them. Full sunshine on the pyranometer with a dry gauge rules out a thunderstorm overhead whatever the forecast area as a whole is doing, and a provider covers a region where a station covers a garden. Off by default.
+Only the plain sky icons are normally touched: rain, snow and fog are things a provider knows about and the sensors cannot see, so those are left alone. There are two exceptions, and they are not the same.
+
+**Sunlit and dry.** Full sunshine on the pyranometer with a dry gauge rules out a thunderstorm overhead, whatever the forecast area as a whole is doing. A provider covers a region; a station covers a garden. Cloud has to be under 15% for this, which is deliberately demanding.
+
+**A dry gauge against claimed rain.** When the provider says it is raining and the gauge says it is not, the gauge wins — whatever the sky is doing. A pyranometer cannot see rain, so cloud has no bearing on that claim; a gauge measures precisely the claim being made, and under an overcast sky it is the only instrument that can settle it. This is the commonest disagreement of all: grey, provider says rain, nothing falling. The icon then follows the measured cloud instead.
+
+It applies to rain only. A tipping bucket reads snow poorly and cannot see lightning at all, so snow, hail and storms stay with the provider. And it needs a gauge configured: with none, the provider stands, rather than an absent sensor being read as a dry one.
+
+Off by default.
 
 The measurement is shared by every card on the page — it describes the sky, not the card — so several cards never disagree about the same moment. Broken cloud swings the instantaneous reading violently — 181 to 513 W/m² inside three minutes on a typical morning, which spans the whole icon range — so the card takes the median of the last five minutes and the band boundaries carry hysteresis. The median rather than the mean because one reading through a gap should not drag the answer toward clear, and five minutes rather than longer because a window that includes a sunny spell from ten minutes ago describes the sky as it was, not as it is. Sun through a gap is still broken cloud, and an icon that changes every few minutes is worse than one that lags by a few.
 
@@ -777,6 +785,38 @@ Hovering a column shows the full forecast for that day, including the precipitat
 </p>
 
 Two layout options: **Horizontal** (default, up to 5 days) and **Vertical** (up to 7 days).
+
+### Hourly forecast
+
+The section can hold a second view. Point **Hourly weather entity** at a provider that publishes hourly forecasts and a pair of tabs appears — **Daily** and **Hourly** — the way Home Assistant's own more-info dialog does it. Without one configured there are no tabs and nothing changes.
+
+**Hourly forecast** has a switch of its own in the section list, beside the one the daily forecast already has. Between them they give the three useful arrangements without a setting for it:
+
+| Daily | Hourly | |
+| --- | --- | --- |
+| on | off | days only |
+| on | on | both, with a pair of tabs |
+| off | on | hours only |
+
+Turning both off shows nothing, which is what it ought to do.
+
+The hourly view is a column per hour — time, icon, temperature — and it scrolls sideways, each column keeping a minimum width, so the span stays readable rather than being squeezed across a phone.
+
+| | |
+| --- | --- |
+| **Hours to show** | 1 to 48, twelve by default |
+| **Step** | Take every nth hour. Three fits two days in the space of eight, which is usually the better trade |
+| **Shade the night hours** | A faint wash behind the hours the sun is down, so it is obvious where the day ends |
+| **Show rainfall** | A figure under the hours expecting some; the row vanishes when the whole span is dry, rather than printing a column of zeroes |
+| **Show wind** | Speed under each hour |
+
+The night shading is **calculated, not read**. A sun entity reports where the sun is now, and these are hours that have not happened yet, so the card works the elevation out from your latitude and longitude — using the standard −0.833° horizon, which accounts for refraction and the sun's own width and is what "sunrise" actually means.
+
+It is a **separate weather entity** rather than a second forecast type on the one used for the days, and that is deliberate. Most people already run more than one provider, and the one that is better at hours is often not the one they prefer for days: Met.no publishes forty-eight hours, needs no API key and works anywhere, which makes it a common second source even for people whose daily forecast comes from elsewhere. The card subscribes to the two independently.
+
+Two things follow from having both. The temperature and precipitation charts belong to the days, so they are hidden while the hourly view is open — two unlabelled charts of different things, stacked, would be worse than one. And which tab is open is not written to the dashboard: it is a glance rather than a preference, and saving it on every tap would be both surprising and slow.
+
+Hours and days answer different questions — *will I get wet walking home* against *is the weekend any good* — which is why this is a switch rather than two blocks of the card.
 
 Hovering over any forecast day column shows a tooltip with date, weather description, max/min temperatures, precipitation, and wind speed/direction. The tooltip content is identical to the Charts section tooltip.
 
@@ -1007,6 +1047,13 @@ double_tap_action:
 | `entity_lightning_distance` | String | none | Strike detector distance sensor — adds its own warning row |
 | `entity_lightning_azimuth` | String | none | Strike detector bearing sensor, for the direction |
 | `option_lightning_max_distance` | Number | `50` | Storms further away than this are ignored |
+| `entity_hourly` | String | none | Weather entity for the hourly view — enables the Daily/Hourly tabs |
+| `hourly_forecast_hours` | Number | `12` | Hours to show, 1 to 48 |
+| `hourly_forecast_step` | Number | `1` | Take every nth hour |
+| `show_section_hourly_forecast` | Boolean | `false` | Show the hourly view |
+| `option_hourly_shade_night` | Boolean | `true` | Shade the hours the sun is down |
+| `option_hourly_precipitation` | Boolean | `true` | Rainfall under the hours expecting some |
+| `option_hourly_wind` | Boolean | `false` | Wind speed under each hour |
 | `show_section_warnings` | Boolean | `true` | Show the warnings section |
 | `option_warning_show_expiry` | Boolean | `true` | Show when the warning expires |
 | `option_show_gust_in_wind` | Boolean | `true` | Append the wind gust to the wind slot, e.g. "SE 12 (Gust 20) km/h" |

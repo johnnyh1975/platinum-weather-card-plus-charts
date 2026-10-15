@@ -21,7 +21,7 @@ import { ForecastEvent, subscribeForecast, getForecast, ForecastAttribute } from
 
 import { CARD_VERSION } from './const';
 import { tCard, tMoonPhase, tSager, tUnit, tWarning, tWindDirections, tZambretti } from './translations';
-import { zambrettiLetter, pressureToHpa, seaLevelPressure, windSpeedToKmh, tidalTrendHpaPerHour, cloudCoverFraction, cloudCoverOktas } from './zambretti';
+import { zambrettiLetter, pressureToHpa, seaLevelPressure, windSpeedToKmh, tidalTrendHpaPerHour, cloudCoverFraction, cloudCoverOktas, sunElevation } from './zambretti';
 import { sagerForecast } from './sager';
 
 
@@ -65,6 +65,17 @@ export class PlatinumWeatherCard extends LitElement {
   //  https://github/homeassistant/frontend/src/panels/lovelace/cards/hui-weather-forecast-card.ts
   @state() private _subscribed?: Promise<() => void>;
   @state() private _forecastEvent?: ForecastEvent;
+  // A second, independent subscription. The hourly section reads its own weather
+  // entity rather than a second forecast type from the same one: most people
+  // already have two providers, and one of them is often better at hours than
+  // the one they prefer for days. It also keeps this clear of the daily
+  // subscription entirely, which is the part that already works.
+  @state() private _hourlySubscribed?: Promise<() => void>;
+  @state() private _hourlyEvent?: ForecastEvent;
+  // Which of the two the reader is looking at. Deliberately not config: it is a
+  // glance, not a preference, and writing it to the dashboard on every tap
+  // would be both surprising and slow.
+  @state() private _showHourly = false;
 
   // https://lit.dev/docs/components/properties/
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -251,6 +262,45 @@ export class PlatinumWeatherCard extends LitElement {
   }
 
 
+  _unsubscribeHourly() {
+    if (this._hourlySubscribed) {
+      this._hourlySubscribed.then((unsub) => unsub());
+      this._hourlySubscribed = undefined;
+    }
+  }
+
+  async _subscribeHourly() {
+    this._unsubscribeHourly();
+    const entity = this._config?.entity_hourly;
+    if (!this.isConnected || !this.hass || !this._config || !entity) return;
+    if (!this.hass.states[entity]) return;
+    this._hourlySubscribed = subscribeForecast(
+      this.hass, entity, 'hourly', (event) => { this._hourlyEvent = event; },
+    );
+  }
+
+  // The hours the section will draw, trimmed to the configured span. Unlike the
+  // daily forecast this counts from now rather than from a date, so entries
+  // already in the past are dropped first — a provider that updates hourly
+  // leaves the current hour in place for most of it.
+  get hourlyForecast(): ForecastAttribute[] | undefined {
+    const data = this._hourlyEvent?.forecast;
+    if (!data?.length) return undefined;
+    const hours = Number(this._config?.hourly_forecast_hours);
+    const span = isFinite(hours) && hours > 0 ? Math.min(hours, 48) : 12;
+    const cutoff = Date.now() - 3600000;
+    const upcoming = data.filter((f) => new Date(f.datetime).getTime() >= cutoff);
+    const window = (upcoming.length ? upcoming : data).slice(0, span);
+
+    // A step thins the columns rather than shortening the span: two days at
+    // three-hourly is the same eight columns as eight hours at one, and tells
+    // you a great deal more. The first entry is always kept, since it is the
+    // hour you are standing in.
+    const step = Number(this._config?.hourly_forecast_step);
+    if (!isFinite(step) || step <= 1) return window;
+    return window.filter((_, i) => i % Math.round(step) === 0);
+  }
+
   //tjl from bramkragten's weather-card
   // Stable bound references so removeEventListener can find them
   private _boundPointerDown = this._onPointerDown.bind(this);
@@ -261,6 +311,7 @@ export class PlatinumWeatherCard extends LitElement {
     super.connectedCallback();
     if (this.hasUpdated && this._config && this.hass) {
       this._subscribeForecastEvents();
+      this._subscribeHourly();
     }
     this.addEventListener('pointerdown', this._boundPointerDown);
     this.addEventListener('pointercancel', this._boundPointerCancel);
@@ -351,6 +402,7 @@ export class PlatinumWeatherCard extends LitElement {
     }
     if (changedProps.has("_config") || !this._subscribed) {
       this._subscribeForecastEvents();
+      this._subscribeHourly();
     }
     // mark tappable slots so CSS can show a pointer cursor only where a tap will work
     this.renderRoot.querySelectorAll('li[data-slot]').forEach((el) => {
@@ -1514,6 +1566,92 @@ export class PlatinumWeatherCard extends LitElement {
     return rows;
   }
 
+  // Hourly forecast: a continuous line over time, which is the shape the data
+  // actually has. Twenty-four hours will not fit as columns the way five days
+  // do, and an hourly temperature is one number rather than a max and a min —
+  // so this is a chart first, with the hours labelled beneath it, rather than
+  // the daily section at a finer grain.
+  // Columns, like the daily strip, rather than a line chart. An hourly
+  // temperature is one number and the hours want reading one at a time — which
+  // is what a column does and a line does not. It also keeps one visual
+  // language across the card: the days above look like this too.
+  private _renderHourlyForecastSection(): TemplateResult {
+    const forecast = this.hourlyForecast;
+    if (!forecast || forecast.length === 0) return html``;
+
+    const decimals = this._config?.option_today_temperature_decimals === true ? 1 : 0;
+    const showRain = this._config?.option_hourly_precipitation !== false
+      && forecast.some((f) => Number(f.precipitation) > 0);
+    const showWind = this._config?.option_hourly_wind === true;
+    const shadeNight = this._config?.option_hourly_shade_night !== false;
+    const lat = this.hass?.config?.latitude;
+    const lon = this.hass?.config?.longitude;
+    const canShade = shadeNight && typeof lat === 'number' && typeof lon === 'number';
+
+    const columns = forecast.map((f) => {
+      const when = new Date(f.datetime);
+      const time = isNaN(when.getTime()) ? '' : when.toLocaleTimeString(this.locale, {
+        hour: '2-digit', minute: '2-digit',
+      });
+
+      const condition = String(f.condition ?? '');
+      const url = this._getIconUrl(condition ? this._weatherIcon(condition) : 'unknown', true);
+
+      const t = Number(f.temperature);
+      const temp = isFinite(t)
+        ? `${t.toLocaleString(this.locale, {
+            minimumFractionDigits: decimals, maximumFractionDigits: decimals })}°`
+        : '---';
+
+      // Night is worked out rather than read: the sun entity says where the sun
+      // is now, and these are hours that have not happened yet.
+      const night = canShade && sunElevation(when, lat as number, lon as number) < -0.833;
+
+      const windBits: string[] = [];
+      if (showWind) {
+        const ws = Number(f.wind_speed);
+        if (isFinite(ws)) {
+          // The unit comes from the entity the number came from, not from the
+          // system settings — the mistake behind #20, and the forecast entity
+          // is exactly where the two are most likely to disagree: Met.no
+          // publishes km/h while a metric system says m/s, so labelling from
+          // the system turns 12 km/h into '12 m/s'.
+          const unit = this._entityUnit(this._config?.entity_hourly, 'wind_speed_unit')
+            ?? this.getUOM('wind_speed');
+          windBits.push(`${Math.round(ws)}${unit}`);
+        }
+      }
+
+      const p = Number(f.precipitation);
+      // Only where something is expected: a column of zeroes is noise, and the
+      // row is dropped entirely when the whole span is dry.
+      const rain = showRain
+        ? html`<div class="hourly-rain">${p > 0
+            ? `${p.toLocaleString(this.locale, {
+                minimumFractionDigits: 1, maximumFractionDigits: 1 })}${this._precipUnit(undefined)}`
+            : ''}</div>`
+        : html``;
+
+      return html`
+        <div class="hourly-col${night ? ' hourly-night' : ''}">
+          <div class="hourly-time">${time}</div>
+          <i class="icon hourly-icon" style="background: none, url(${url}) no-repeat; background-size: contain;"></i>
+          <div class="hourly-temp">${temp}</div>
+          ${rain}
+          ${showWind ? html`<div class="hourly-wind">${windBits.join('')}</div>` : html``}
+        </div>
+      `;
+    });
+
+    return html`
+      <div class="hourly-section">
+        <div class="hourly-scroll">
+          <div class="hourly-row">${columns}</div>
+        </div>
+      </div>
+    `;
+  }
+
   private _renderChartSection(): TemplateResult {
     if (this._config.show_section_charts === false) return html``;
     const showTemp   = this._config.option_show_temperature_chart === true;
@@ -1667,14 +1805,66 @@ export class PlatinumWeatherCard extends LitElement {
     </div>`;
   }
 
-     private _renderDailyForecastSection(): TemplateResult {
-    if (this._config?.show_section_daily_forecast === false) return html``;
+  // The two views share a section and a pair of tabs, the way Home Assistant's
+  // own more-info dialog does. Hours and days answer different questions —
+  // "will I get wet walking home" against "is the weekend any good" — and the
+  // familiar shape for that is a switch, not two blocks of the card.
+  // Two switches rather than a three-way select: the daily section already has
+  // one, so giving the hours theirs produces the three useful states on its own
+  // — days, hours, or both with tabs — and a fourth that simply shows nothing,
+  // which is what turning both off ought to do anyway.
+  private get _forecastMode(): 'daily' | 'hourly' | 'both' | 'none' {
+    const days = this._config?.show_section_daily_forecast !== false;
+    const hours = this._config?.show_section_hourly_forecast === true
+      && !!this._config?.entity_hourly;
+    if (days && hours) return 'both';
+    if (hours) return 'hourly';
+    if (days) return 'daily';
+    return 'none';
+  }
 
-    if (this._config.daily_forecast_layout !== 'vertical') {
-      return this._renderHorizontalDailyForecastSection();
-    } else {
-      return this._renderVerticalDailyForecastSection();
+  private _renderForecastTabs(): TemplateResult {
+    // Tabs are for choosing, so they only appear when there is a choice: with
+    // one view configured they would be a control that does nothing.
+    if (this._forecastMode !== 'both') return html``;
+    if (!this.hourlyForecast) return html``;
+    // The card itself listens for taps, and a tap_action of navigate would
+    // carry a tab click off to another view. The tab is a control within the
+    // card, so its click stops here — pointerdown too, since that is what
+    // starts the card's own press handling.
+    const pick = (hourly: boolean) => (e: Event) => {
+      e.stopPropagation();
+      this._showHourly = hourly;
+    };
+    const swallow = (e: Event) => e.stopPropagation();
+    return html`
+      <div class="forecast-tabs" @pointerdown=${swallow} @pointercancel=${swallow}>
+        <button class="forecast-tab ${this._showHourly ? '' : 'active'}"
+                @click=${pick(false)}>${tCard(this.locale, 'tab_daily')}</button>
+        <button class="forecast-tab ${this._showHourly ? 'active' : ''}"
+                @click=${pick(true)}>${tCard(this.locale, 'tab_hourly')}</button>
+      </div>
+    `;
+  }
+
+  private _renderDailyForecastSection(): TemplateResult {
+    const mode = this._forecastMode;
+    if (mode === 'none') return html``;
+
+    const tabs = this._renderForecastTabs();
+    // Hours only: no tabs, and the days are not drawn at all.
+    if (mode === 'hourly' && this.hourlyForecast) {
+      return this._renderHourlyForecastSection();
     }
+    // Falling back rather than showing an empty frame: the tabs only appear
+    // when there are hours to show, so this can only be reached mid-load.
+    if (mode === 'both' && this._showHourly && this.hourlyForecast) {
+      return html`${tabs}${this._renderHourlyForecastSection()}`;
+    }
+    const days = this._config.daily_forecast_layout !== 'vertical'
+      ? this._renderHorizontalDailyForecastSection()
+      : this._renderVerticalDailyForecastSection();
+    return html`${tabs}${days}`;
   }
 
   protected render(): TemplateResult | void {
@@ -1728,8 +1918,13 @@ export class PlatinumWeatherCard extends LitElement {
             break;
           case 'daily_forecast':
             sections.push(this._renderDailyForecastSection());
-            sections.push(this._renderChartSection());
+            // The hourly view carries its own chart; showing the daily one
+            // underneath it would be two charts of different things.
+            const showingHours = this._forecastMode === 'hourly'
+              || (this._forecastMode === 'both' && this._showHourly);
+            if (!showingHours) sections.push(this._renderChartSection());
             break;
+
         }
       });
     }
@@ -3498,14 +3693,31 @@ export class PlatinumWeatherCard extends LitElement {
       const rate = this.measuredRainRate;
 
       // A provider reporting rain, snow or a storm usually knows something the
-      // sensors cannot see — but not when they flatly contradict it. Full
-      // sunshine on the pyranometer and a dry gauge rule out a thunderstorm
-      // overhead, whatever the forecast area as a whole is doing: a provider
-      // covers a region, a station covers a garden.
+      // sensors cannot see — but not when they flatly contradict it. Two ways
+      // that can happen, and they are not the same.
       const cloud = this.measuredCloudFraction;
-      const contradicted = cloud !== null && cloud < 0.15
+
+      // One: full sunshine and a dry gauge rule out a thunderstorm overhead,
+      // whatever the forecast area as a whole is doing. A provider covers a
+      // region, a station covers a garden.
+      const sunlitAndDry = cloud !== null && cloud < 0.15
         && (rate === null || rate === 0);
-      if (contradicted && !isPlainSky) isPlainSky = true;
+
+      // Two: the provider says it is raining and the gauge says it is not. A
+      // pyranometer cannot see rain, so cloud has no bearing here — but a gauge
+      // measures precisely the claim being made, and under an overcast sky that
+      // is the only instrument that can settle it. Requiring clear sky as well
+      // meant the commonest disagreement of all went uncorrected: cloudy,
+      // provider claims rain, nothing falling.
+      //
+      // Snow, hail and storms are excluded: a tipping bucket reads snow poorly
+      // and cannot see lightning at all.
+      const claimsRain = /^(rainy|pouring|drizzle)/.test(adjusted);
+      const gaugeSaysDry = this._config?.entity_rain_rate !== undefined
+        && rate !== null && rate === 0;
+      const rainDenied = claimsRain && gaugeSaysDry;
+
+      if ((sunlitAndDry || rainDenied) && !isPlainSky) isPlainSky = true;
 
       if (isPlainSky && rate !== null && rate > 0) {
         // Same meteorological bands the slot uses, so icon and reading agree.
@@ -4108,8 +4320,76 @@ export class PlatinumWeatherCard extends LitElement {
         position: relative;
         line-height: 74%;
       }
-      /* Its own row: .apparent-temp is a table-row, so anything placed inside it
-         lines up beside the temperature rather than under it. */
+      .forecast-tabs {
+        display: flex;
+        gap: 4px;
+        padding: 0 12px 6px;
+      }
+      .forecast-tab {
+        flex: 1;
+        padding: 4px 0;
+        font: inherit;
+        font-size: 0.8em;
+        color: var(--primary-text-color);
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        opacity: 0.55;
+        cursor: pointer;
+      }
+      .forecast-tab.active {
+        opacity: 1;
+        border-bottom-color: var(--primary-color);
+      }
+      .hourly-section {
+        padding: 0 4px 6px;
+      }
+      .hourly-scroll {
+        overflow-x: auto;
+        overflow-y: hidden;
+        /* A trackpad flick should not drag the dashboard sideways with it */
+        overscroll-behavior-x: contain;
+        scrollbar-width: thin;
+      }
+      .hourly-row {
+        display: flex;
+      }
+      .hourly-col {
+        flex: 0 0 auto;
+        /* Wide enough for 'HH:MM' at this size, so the times never collide */
+        min-width: 62px;
+        text-align: center;
+        padding: 2px 0;
+      }
+      .hourly-time {
+        font-size: 0.78em;
+        opacity: 0.75;
+      }
+      .hourly-icon {
+        display: block;
+        width: 30px;
+        height: 30px;
+        margin: 2px auto;
+      }
+      .hourly-temp {
+        font-size: 0.92em;
+      }
+      .hourly-night {
+        /* A faint wash, not a block: it should say where the day ends without
+           making those hours harder to read than the rest. */
+        background: rgba(50, 70, 110, 0.22);
+        border-radius: 4px;
+      }
+      .hourly-wind {
+        font-size: 0.7em;
+        opacity: 0.65;
+        min-height: 1em;
+      }
+      .hourly-rain {
+        font-size: 0.72em;
+        color: var(--pwcc-rain, #73c6ef);
+        min-height: 1em;
+      }
       .comfort-row {
         display: table-row;
         margin-left: auto;
