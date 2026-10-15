@@ -855,6 +855,10 @@ Both off shows nothing, which is what it ought to do. The Hourly forecast switch
 
 Opened with the settings button on the **Hourly forecast** row:
 
+<p align="center">
+  <img src="images/editor-hourly.png" alt="The Hourly forecast settings in the editor" width="720">
+</p>
+
 | Setting | Key | Default | |
 | --- | --- | --- | --- |
 | Hourly forecast (the row's switch) | `show_section_hourly_forecast` | off | Show the hourly view. Needs an hourly entity |
