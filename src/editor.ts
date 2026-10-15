@@ -1851,6 +1851,8 @@ get _forecast_type(): string {
           <option value="it">🇮🇹 Italiano</option>
           <option value="nl">🇳🇱 Nederlands</option>
           <option value="pl">🇵🇱 Polski</option>
+          <option value="sr">🇷🇸 Српски</option>
+          <option value="sr-Latn">🇷🇸 Srpski</option>
           <option value="ru">🇷🇺 Русский</option>
           <option value="ua">🇺🇦 Українська</option>
         </select>
