@@ -36,9 +36,9 @@ The card is in the HACS default store:
 
 **v2.5.0**
 
-**An hourly forecast** (#18). Hours and days answer different questions — *will I get wet walking home* against *is the weekend any good* — and a forecast strip of days cannot answer the first. Point **Hourly weather entity** at a provider that publishes hourly data and the daily forecast section gains a pair of tabs, **Daily** and **Hourly**, the way Home Assistant's own more-info dialog has them. Met.no is the easy source: forty-eight hours, no API key, works anywhere, and it does not have to be the provider you use for days — the two are separate entities on purpose, and the card subscribes to them independently.
+**An hourly forecast** (#18). Hours and days answer different questions — *will I get wet walking home* against *is the weekend any good* — and a forecast strip of days cannot answer the first. Set **Hourly weather entity** to a provider that publishes hourly data, switch the new **Hourly forecast** row on, and the daily forecast section gains a pair of tabs, **Daily** and **Hourly**, the way Home Assistant's own more-info dialog has them. Met.no is the easy source: forty-eight hours, no API key, works anywhere, and it does not have to be the provider you use for days — the two are separate entities on purpose, and the card subscribes to them independently.
 
-The section list now has an **Hourly forecast** switch beside the daily one. Between them they give days only, both with tabs, or hours only, without a setting for it. The hours are a column each — time, icon, temperature — scrolling sideways instead of being squeezed across a phone. They can show rainfall (the row disappears when the whole span is dry), wind, and a shade behind the night hours, which is worked out from your latitude and longitude because a sun entity only knows where the sun is *now*. A **step** takes every nth hour, so three covers two days in the space of eight. The temperature and precipitation charts belong to the days and are hidden while the hours are open.
+The section list now has an **Hourly forecast** row of its own, directly beneath the daily forecast, with a switch and its own settings. Between the two switches they give days only, both with tabs, or hours only, without a setting for it. The hours are a column each — time, icon, temperature — scrolling sideways instead of being squeezed across a phone. They can show rainfall (the row disappears when the whole span is dry), wind, and a shade behind the night hours, which is worked out from your latitude and longitude because a sun entity only knows where the sun is *now*. A **step** takes every nth hour, so a step of three turns twenty-four hours into eight columns. The temperature and precipitation charts belong to the days and are hidden while the hours are open.
 
 **Serbian**, in both scripts: `sr` (Cyrillic) and `sr-Latn` (Latin), the card, the editor and the forecast texts, including everything above. Contributed by @cpmarexel2f (#22). Region-qualified codes such as `sr-RS` and `sr-Cyrl-RS` now resolve to the right script, and the language lookup lives in one function instead of eight copies — which is what the contribution's first draft showed was too easy to get subtly wrong.
 
@@ -402,9 +402,10 @@ Features added along the way: the `moon` slot with its phase icons, `option_show
 - **Extended** — a longer forecast description
 - **Slots** — two columns of readings, up to eight each
 - **Daily Forecast** — a column per day
+- **Hourly Forecast** — a column per hour, as a tab beside the days or on its own
 - **Charts** — temperature lines and precipitation bars
 
-Each row has a switch to hide the section entirely, arrows to reorder it, and a pencil to open its settings. The second icon, where present, opens that section's visibility rules — the conditions under which it appears at all.
+Each row has a switch to hide the section entirely and arrows to reorder it. The pencil opens the entities the section reads from; the second icon, where present, opens its display options. **Hourly Forecast** is the exception: it is a view of the daily forecast rather than a section, so it has a switch and one settings button, holding both its entity and its options, and no arrows.
 
 **Global Options** at the top is not a section of the card; it holds the settings that several sections draw on, such as the locale, the icon pack and the station sensors.
 
@@ -803,37 +804,7 @@ Hovering a column shows the full forecast for that day, including the precipitat
 
 Two layout options: **Horizontal** (default, up to 5 days) and **Vertical** (up to 7 days).
 
-### Hourly forecast
-
-The section can hold a second view. Point **Hourly weather entity** at a provider that publishes hourly forecasts and a pair of tabs appears — **Daily** and **Hourly** — the way Home Assistant's own more-info dialog does it. Without one configured there are no tabs and nothing changes.
-
-**Hourly forecast** has a switch of its own in the section list, beside the one the daily forecast already has. Between them they give the three useful arrangements without a setting for it:
-
-| Daily | Hourly | |
-| --- | --- | --- |
-| on | off | days only |
-| on | on | both, with a pair of tabs |
-| off | on | hours only |
-
-Turning both off shows nothing, which is what it ought to do.
-
-The hourly view is a column per hour — time, icon, temperature — and it scrolls sideways, each column keeping a minimum width, so the span stays readable rather than being squeezed across a phone.
-
-| | |
-| --- | --- |
-| **Hours to show** | 1 to 48, twelve by default |
-| **Step** | Take every nth hour. Three fits two days in the space of eight, which is usually the better trade |
-| **Shade the night hours** | A faint wash behind the hours the sun is down, so it is obvious where the day ends |
-| **Show rainfall** | A figure under the hours expecting some; the row vanishes when the whole span is dry, rather than printing a column of zeroes |
-| **Show wind** | Speed under each hour |
-
-The night shading is **calculated, not read**. A sun entity reports where the sun is now, and these are hours that have not happened yet, so the card works the elevation out from your latitude and longitude — using the standard −0.833° horizon, which accounts for refraction and the sun's own width and is what "sunrise" actually means.
-
-It is a **separate weather entity** rather than a second forecast type on the one used for the days, and that is deliberate. Most people already run more than one provider, and the one that is better at hours is often not the one they prefer for days: Met.no publishes forty-eight hours, needs no API key and works anywhere, which makes it a common second source even for people whose daily forecast comes from elsewhere. The card subscribes to the two independently.
-
-Two things follow from having both. The temperature and precipitation charts belong to the days, so they are hidden while the hourly view is open — two unlabelled charts of different things, stacked, would be worse than one. And which tab is open is not written to the dashboard: it is a glance rather than a preference, and saving it on every tap would be both surprising and slow.
-
-Hours and days answer different questions — *will I get wet walking home* against *is the weekend any good* — which is why this is a switch rather than two blocks of the card.
+The days can share the section with an hourly view, shown as a second tab or on its own. It has settings of its own, described under [Hourly Forecast Section](#hourly-forecast-section).
 
 Hovering over any forecast day column shows a tooltip with date, weather description, max/min temperatures, precipitation, and wind speed/direction. The tooltip content is identical to the Charts section tooltip.
 
@@ -856,6 +827,67 @@ Hovering over any forecast day column shows a tooltip with date, weather descrip
 With **Show date next to day** enabled, the date follows the day name and the label shrinks to fit:
 
 ![Daily forecast with dates](images/daily-forecast-dates.png)
+
+## Hourly Forecast Section
+
+Hours and days answer different questions — *will I get wet walking home* against *is the weekend any good* — which is why the hours are a view of the forecast with settings of their own, rather than a second block of the card. They can sit beside the days as a second tab, or replace them.
+
+### Turning it on
+
+Two things are needed, and nothing changes until both are done:
+
+1. **Set the Hourly weather entity**, a weather entity whose provider publishes hourly forecasts.
+2. **Switch the Hourly forecast row on.** It is off by default.
+
+In the editor the row is called **Hourly forecast** and sits directly beneath **Daily forecast** in the section list, with a clock icon. It has a switch and one settings button, which holds both the entity and the options, and no reorder arrows: it is a view of the forecast rather than a section of the card, so it stays beneath the daily forecast wherever that is moved.
+
+The Hourly forecast switch and the Daily forecast switch together give the three useful arrangements, without a setting for it:
+
+| Daily forecast | Hourly forecast | Shows |
+| --- | --- | --- |
+| on | off | days only |
+| on | on | both, with a pair of tabs — **Daily** and **Hourly** — the way Home Assistant's own more-info dialog does it |
+| off | on | hours only |
+
+Both off shows nothing, which is what it ought to do. The Hourly forecast switch has no effect while no hourly entity is set: the card behaves as though it were off. The tabs appear once the hourly data has arrived.
+
+### Settings
+
+Opened with the settings button on the **Hourly forecast** row:
+
+| Setting | Key | Default | |
+| --- | --- | --- | --- |
+| Hourly forecast (the row's switch) | `show_section_hourly_forecast` | off | Show the hourly view. Needs an hourly entity |
+| Hourly weather entity | `entity_hourly` | none | The weather entity the hours come from |
+| Hours to show | `hourly_forecast_hours` | `12` | 1 to 48; anything above 48 is capped at 48 |
+| Step (hours) | `hourly_forecast_step` | `1` | Take every nth hour. The span is cut first and then thinned, so 24 hours at a step of 3 is eight columns and 48 hours is sixteen. The first column is always kept, since it is the hour you are standing in |
+| Shade the night hours | `option_hourly_shade_night` | on | A faint wash behind the hours the sun is down, so it is obvious where the day ends |
+| Show rainfall | `option_hourly_precipitation` | on | A figure under the hours expecting some; the row vanishes when the whole span is dry, rather than printing a column of zeroes |
+| Show wind | `option_hourly_wind` | off | Speed under each hour, in the unit the hourly entity reports |
+
+### What it shows
+
+<p align="center">
+  <img src="images/hourly-forecast.png" alt="The card with the Daily and Hourly tabs, Hourly open" width="420">
+</p>
+
+A column per hour — time in the card's locale, icon, temperature — starting at the hour in progress. Temperatures follow the same decimals setting as the overview (`option_today_temperature_decimals`). The columns scroll sideways, each keeping a minimum width, so the span stays readable rather than being squeezed across a phone.
+
+The night shading is **calculated, not read**. A sun entity reports where the sun is now, and these are hours that have not happened yet, so the card works the elevation out from your latitude and longitude — using the standard −0.833° horizon, which accounts for refraction and the sun's own width and is what "sunrise" actually means.
+
+It is a **separate weather entity** rather than a second forecast type on the one used for the days, and that is deliberate. Most people already run more than one provider, and the one that is better at hours is often not the one they prefer for days: Met.no publishes forty-eight hours, needs no API key and works anywhere, which makes it a common second source even for people whose daily forecast comes from elsewhere. The card subscribes to the two independently.
+
+Two things follow from having both. The temperature and precipitation charts belong to the days, so they are hidden while the hourly view is open — two unlabelled charts of different things, stacked, would be worse than one. And which tab is open is not written to the dashboard: it is a glance rather than a preference, and saving it on every tap would be both surprising and slow.
+
+### Example
+
+```yaml
+show_section_hourly_forecast: true
+entity_hourly: weather.forecast_home
+hourly_forecast_hours: 48
+hourly_forecast_step: 3
+option_hourly_wind: true
+```
 
 ## Charts Section
 
@@ -1064,13 +1096,6 @@ double_tap_action:
 | `entity_lightning_distance` | String | none | Strike detector distance sensor — adds its own warning row |
 | `entity_lightning_azimuth` | String | none | Strike detector bearing sensor, for the direction |
 | `option_lightning_max_distance` | Number | `50` | Storms further away than this are ignored |
-| `entity_hourly` | String | none | Weather entity for the hourly view — enables the Daily/Hourly tabs |
-| `hourly_forecast_hours` | Number | `12` | Hours to show, 1 to 48 |
-| `hourly_forecast_step` | Number | `1` | Take every nth hour |
-| `show_section_hourly_forecast` | Boolean | `false` | Show the hourly view |
-| `option_hourly_shade_night` | Boolean | `true` | Shade the hours the sun is down |
-| `option_hourly_precipitation` | Boolean | `true` | Rainfall under the hours expecting some |
-| `option_hourly_wind` | Boolean | `false` | Wind speed under each hour |
 | `show_section_warnings` | Boolean | `true` | Show the warnings section |
 | `option_warning_show_expiry` | Boolean | `true` | Show when the warning expires |
 | `option_show_gust_in_wind` | Boolean | `true` | Append the wind gust to the wind slot, e.g. "SE 12 (Gust 20) km/h" |
@@ -1098,6 +1123,18 @@ Default slot values: l1=`forecast_max`, l2=`forecast_min`, l3=`wind`, l4=`pressu
 | `option_daily_color_fire_danger` | Boolean | `true` | Colour fire danger (vertical only) |
 | `old_daily_format` | Boolean | `false` | Stack max/min vertically instead of side by side |
 | `tempformat` | String | — | `highlow` = show max before min |
+
+## Hourly Forecast Section
+
+| Variable | Type | Default | Description |
+| -------- | ---- | ------- | ----------- |
+| `show_section_hourly_forecast` | Boolean | `false` | Show the hourly view. Has no effect until `entity_hourly` is set; together with `show_section_daily_forecast` it gives days only, both with tabs, or hours only |
+| `entity_hourly` | String | none | Weather entity whose provider publishes hourly forecasts |
+| `hourly_forecast_hours` | Number | `12` | Hours to show, 1 to 48 |
+| `hourly_forecast_step` | Number | `1` | Take every nth hour — 24 hours at 3 is eight columns |
+| `option_hourly_shade_night` | Boolean | `true` | Shade the hours the sun is down; calculated from `latitude`/`longitude`, not read from a sensor |
+| `option_hourly_precipitation` | Boolean | `true` | Rainfall under the hours expecting some |
+| `option_hourly_wind` | Boolean | `false` | Wind speed under each hour, in the hourly entity's unit |
 
 ## Charts Section
 
