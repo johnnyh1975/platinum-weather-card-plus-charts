@@ -132,7 +132,7 @@ const he: Translation = {
     "hourly_precipitation": "הצג משקעים",
     "hourly_shade_night_hint": "מחושב לפי מיקום השמש, לא נקרא מחיישן",
     "hourly_shade_night": "הצללת שעות הלילה",
-    "hourly_forecast_step_hint": "כל שעה n — 3 מכניס יומיים במקום של שמונה",
+    "hourly_forecast_step_hint": "כל שעה n — 3 הופך 24 שעות לשמונה עמודות",
     "hourly_forecast_step": "צעד (שעות)",
     "hourly_mode_hint": "עם שתיהן, לשוניות מאפשרות מעבר",
     "hourly_mode_both": "שתיהן, עם לשוניות",

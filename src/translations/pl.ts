@@ -132,7 +132,7 @@ const pl: Translation = {
     "hourly_precipitation": "Pokaż opady",
     "hourly_shade_night_hint": "Obliczone z położenia słońca, nie z czujnika",
     "hourly_shade_night": "Przyciemnij godziny nocne",
-    "hourly_forecast_step_hint": "Co n-ta godzina — 3 mieści dwa dni w miejscu ośmiu",
+    "hourly_forecast_step_hint": "Co n-ta godzina — 3 zamienia 24 godziny w osiem kolumn",
     "hourly_forecast_step": "Krok (godziny)",
     "hourly_mode_hint": "Przy obu przełączasz zakładkami",
     "hourly_mode_both": "Obie, z zakładkami",

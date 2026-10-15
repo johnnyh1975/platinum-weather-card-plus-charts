@@ -132,7 +132,7 @@ const ru: Translation = {
     "hourly_precipitation": "Показывать осадки",
     "hourly_shade_night_hint": "Вычисляется по положению солнца, не читается с датчика",
     "hourly_shade_night": "Затемнять ночные часы",
-    "hourly_forecast_step_hint": "Каждый n-й час — 3 умещает двое суток на месте восьми",
+    "hourly_forecast_step_hint": "Каждый n-й час — 3 превращает 24 часа в восемь столбцов",
     "hourly_forecast_step": "Шаг (часы)",
     "hourly_mode_hint": "При обоих переключение вкладками",
     "hourly_mode_both": "Оба, с вкладками",

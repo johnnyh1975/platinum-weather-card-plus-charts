@@ -2211,8 +2211,8 @@ get _forecast_type(): string {
         `;
       case 'hourly_forecast':
         // A row of its own, but not a section: the hours are a view of the
-        // forecast, so there is nothing to reorder and nothing to hide — which
-        // view shows is the mode select inside.
+        // forecast, so there is nothing to reorder. Its switch, together with
+        // the daily forecast's, decides which view shows.
         return html`
           <div class="section-flex">
             <div class="section-label">

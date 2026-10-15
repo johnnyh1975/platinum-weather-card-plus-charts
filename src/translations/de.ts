@@ -132,7 +132,7 @@ const de: Translation = {
     "hourly_precipitation": "Niederschlag anzeigen",
     "hourly_shade_night_hint": "Aus dem Sonnenstand berechnet, nicht von einem Sensor",
     "hourly_shade_night": "Nachtstunden abdunkeln",
-    "hourly_forecast_step_hint": "Jede n-te Stunde — 3 bringt zwei Tage auf den Platz von acht",
+    "hourly_forecast_step_hint": "Jede n-te Stunde — 3 macht aus 24 Stunden acht Spalten",
     "hourly_forecast_step": "Schritt (Stunden)",
     "hourly_mode_hint": "Bei beiden wird per Tab umgeschaltet",
     "hourly_mode_both": "Beide, mit Tabs",

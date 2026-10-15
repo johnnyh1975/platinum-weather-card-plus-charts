@@ -132,7 +132,7 @@ const en: Translation = {
     "hourly_precipitation": "Show rainfall",
     "hourly_shade_night_hint": "Worked out from the sun's position, not read from a sensor",
     "hourly_shade_night": "Shade the night hours",
-    "hourly_forecast_step_hint": "Take every nth hour — 3 fits two days in the space of eight",
+    "hourly_forecast_step_hint": "Take every nth hour — 3 turns 24 hours into eight columns",
     "hourly_forecast_step": "Step (hours)",
     "hourly_mode_hint": "With both, a pair of tabs lets you switch",
     "hourly_mode_both": "Both, with tabs",

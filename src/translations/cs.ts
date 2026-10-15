@@ -132,7 +132,7 @@ const cs: Translation = {
     "hourly_precipitation": "Zobrazit srážky",
     "hourly_shade_night_hint": "Vypočteno z polohy slunce, nečte se ze senzoru",
     "hourly_shade_night": "Ztmavit noční hodiny",
-    "hourly_forecast_step_hint": "Každá n-tá hodina — 3 vejde dva dny na místo osmi",
+    "hourly_forecast_step_hint": "Každá n-tá hodina — 3 promění 24 hodin v osm sloupců",
     "hourly_forecast_step": "Krok (hodiny)",
     "hourly_mode_hint": "U obou přepínáte záložkami",
     "hourly_mode_both": "Obě, se záložkami",

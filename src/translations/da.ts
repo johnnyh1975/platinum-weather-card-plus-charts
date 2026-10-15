@@ -132,7 +132,7 @@ const da: Translation = {
     "hourly_precipitation": "Vis nedbør",
     "hourly_shade_night_hint": "Beregnet ud fra solens position, ikke læst fra en sensor",
     "hourly_shade_night": "Skyg nattetimerne",
-    "hourly_forecast_step_hint": "Hver n-te time — 3 rummer to døgn på otte timers plads",
+    "hourly_forecast_step_hint": "Hver n-te time — 3 gør 24 timer til otte kolonner",
     "hourly_forecast_step": "Trin (timer)",
     "hourly_mode_hint": "Med begge skifter du med faner",
     "hourly_mode_both": "Begge, med faner",

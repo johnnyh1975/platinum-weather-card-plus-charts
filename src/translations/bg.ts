@@ -132,7 +132,7 @@ const bg: Translation = {
     "hourly_precipitation": "Показвай валеж",
     "hourly_shade_night_hint": "Изчислява се по положението на слънцето, не се чете от сензор",
     "hourly_shade_night": "Затъмнявай нощните часове",
-    "hourly_forecast_step_hint": "Взима всеки n-ти час — 3 събира два дни в мястото на осем",
+    "hourly_forecast_step_hint": "Взима всеки n-ти час — 3 превръща 24 часа в осем колони",
     "hourly_forecast_step": "Стъпка (часове)",
     "hourly_mode_hint": "При двете се превключва с табове",
     "hourly_mode_both": "И двете, с табове",

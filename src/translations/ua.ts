@@ -132,7 +132,7 @@ const ua: Translation = {
     "hourly_precipitation": "Показувати опади",
     "hourly_shade_night_hint": "Обчислюється за положенням сонця, не читається з сенсора",
     "hourly_shade_night": "Затемнювати нічні години",
-    "hourly_forecast_step_hint": "Кожна n-та година — 3 вміщує дві доби на місці восьми",
+    "hourly_forecast_step_hint": "Кожна n-та година — 3 перетворює 24 години на вісім стовпців",
     "hourly_forecast_step": "Крок (години)",
     "hourly_mode_hint": "За обох перемикання вкладками",
     "hourly_mode_both": "Обидва, з вкладками",

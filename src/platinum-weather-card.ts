@@ -292,7 +292,7 @@ export class PlatinumWeatherCard extends LitElement {
     const upcoming = data.filter((f) => new Date(f.datetime).getTime() >= cutoff);
     const window = (upcoming.length ? upcoming : data).slice(0, span);
 
-    // A step thins the columns rather than shortening the span: two days at
+    // A step thins the columns rather than shortening the span: a day at
     // three-hourly is the same eight columns as eight hours at one, and tells
     // you a great deal more. The first entry is always kept, since it is the
     // hour you are standing in.
