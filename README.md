@@ -18,7 +18,7 @@ Based on the original Platinum Weather Card by [@makin-things](https://www.githu
 [![Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frudizl%2Fplatinum-weather-card-plus-charts%2Fmaster%2Fbadges%2Fdownloads.json&style=flat)](https://github.com/rudizl/platinum-weather-card-plus-charts/releases)
 ![Maintenance](https://img.shields.io/badge/MAINTAINED-YES-green?style=flat)
 ![Last Commit](https://img.shields.io/github/last-commit/rudizl/platinum-weather-card-plus-charts?style=flat)
-[![License][license-shield]](LICENSE.md)
+[![License][license-shield]](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/rudizl/platinum-weather-card-plus-charts/build.yml?branch=master&style=flat&label=CI)](https://github.com/rudizl/platinum-weather-card-plus-charts/actions/workflows/build.yml)
 
 ## Installation
@@ -33,6 +33,22 @@ The card is in the HACS default store:
 
 <details>
 <summary><strong>Changelog</strong></summary>
+
+**v2.5.0**
+
+**An hourly forecast** (#18). Hours and days answer different questions — *will I get wet walking home* against *is the weekend any good* — and a forecast strip of days cannot answer the first. Point **Hourly weather entity** at a provider that publishes hourly data and the daily forecast section gains a pair of tabs, **Daily** and **Hourly**, the way Home Assistant's own more-info dialog has them. Met.no is the easy source: forty-eight hours, no API key, works anywhere, and it does not have to be the provider you use for days — the two are separate entities on purpose, and the card subscribes to them independently.
+
+The section list now has an **Hourly forecast** switch beside the daily one. Between them they give days only, both with tabs, or hours only, without a setting for it. The hours are a column each — time, icon, temperature — scrolling sideways instead of being squeezed across a phone. They can show rainfall (the row disappears when the whole span is dry), wind, and a shade behind the night hours, which is worked out from your latitude and longitude because a sun entity only knows where the sun is *now*. A **step** takes every nth hour, so three covers two days in the space of eight. The temperature and precipitation charts belong to the days and are hidden while the hours are open.
+
+**Serbian**, in both scripts: `sr` (Cyrillic) and `sr-Latn` (Latin), the card, the editor and the forecast texts, including everything above. Contributed by @cpmarexel2f (#22). Region-qualified codes such as `sr-RS` and `sr-Cyrl-RS` now resolve to the right script, and the language lookup lives in one function instead of eight copies — which is what the contribution's first draft showed was too easy to get subtly wrong.
+
+**Fixes**
+- **A dry gauge now overrules a provider claiming rain, whatever the sky.** The old rule required full sunshine as well as a dry gauge, because it was written for one case, a claimed thunderstorm over a sunlit garden. It therefore missed the commonest disagreement of all: a grey afternoon, the provider says rain, the gauge reads 0.0 mm/h with nothing all day, and the card drew rain. A pyranometer cannot see rain, so cloud has no say in it; the gauge measures exactly the claim being made. Rain only — snow, hail and storms stay with the provider, and without a gauge configured the provider stands
+- Tapping a tab no longer fires the card's own tap action: on a card with `tap_action` set to navigate, switching from Daily to Hourly carried you off to another view
+- The hourly wind carries the unit of the entity it came from rather than Home Assistant's system setting. Met.no publishes km/h while a metric system says m/s, so 12 km/h was shown as *12 m/s* — three times the wind, and plausible enough to go unnoticed. The same mistake as #20, made again in new code
+- Tests now compare every translation section across all languages, including Sager and the moon phases, a full or empty compass, and unit labels for any language not written in Latin script — a Cyrillic card that kept `km/h` would have passed before
+
+---
 
 **v2.4.0**
 
@@ -497,7 +513,7 @@ The forecasts are Sager's own, with his lettering (A through Y), so the output i
 | X | Unsettled, then fair |
 | Y | Unsettled, then fair within 6 hours; cooler |
 
-Every one of them is reachable, which the tests assert — a phrase translated into thirteen languages that no combination of inputs can produce would be thirteen translations wasted.
+Every one of them is reachable, which the tests assert — a phrase translated into fourteen languages that no combination of inputs can produce would be fourteen translations wasted.
 
 </details>
 
@@ -760,7 +776,7 @@ The card supports multiple icon packs, selectable from the editor's **Global Opt
 | `meteocons-fill` | [Meteocons](https://github.com/basmilius/weather-icons) by Bas Milius — filled style | Internet (jsDelivr CDN) |
 | `meteocons-line` | [Meteocons](https://github.com/basmilius/weather-icons) by Bas Milius — line style | Internet (jsDelivr CDN) |
 | `wcc-2` | [ammap Weather Icons](https://www.amcharts.com/free-animated-svg-weather-icons/) — included in `rudizl/weather-chart-card` | Install `rudizl/weather-chart-card` via HACS |
-| `ha-official` | Home Assistant's own weather icons, served from a CDN — the card then matches the rest of your dashboard rather than introducing a second style |
+| `ha-official` | [Home Assistant's own weather icons](https://github.com/scinos/lovelace-weather-icons) — the card then matches the rest of your dashboard rather than introducing a second style | Internet (jsDelivr CDN) |
 | `custom` | Any icon set — set `icon_pack_path` with `{condition}` placeholder | User-provided |
 
 > **Note:** `wcc-1` has been removed — it was byte-for-byte identical to the Meteocons Fill pack. Use `meteocons-fill` instead.
@@ -772,6 +788,7 @@ For `custom`, set `icon_pack_path` to a path template such as `/local/my-icons/{
 | Icon pack | Author | License |
 |---|---|---|
 | [basmilius/weather-icons](https://github.com/basmilius/weather-icons) (Meteocons) | [Bas Milius](https://bas.dev) | [MIT](https://github.com/basmilius/weather-icons/blob/master/LICENSE) |
+| [scinos/lovelace-weather-icons](https://github.com/scinos/lovelace-weather-icons) (Home Assistant's official icons, `ha-official`) | [scinos](https://github.com/scinos) | [MIT](https://github.com/scinos/lovelace-weather-icons/blob/main/LICENSE) |
 | [amCharts Weather Icons](https://www.amcharts.com/free-animated-svg-weather-icons/) (via `rudizl/weather-chart-card`, `wcc-2`) | amCharts / ammap.com | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — free including commercial use, attribution required |
 
 > **Note:** The card's **default built-in icons** are also based on amCharts weather icons, extended by [@makin-things](https://github.com/Makin-Things/weather-icons).
@@ -886,11 +903,11 @@ So a card with the precipitation chart on and the temperature chart off shows th
 
 | Option | Type | Description |
 | ------ | ---- | ----------- |
-| Icon Pack | String | `default`, `meteocons-fill`, `meteocons-line`, `wcc-2`, or `custom` |
+| Icon Pack | String | `default`, `meteocons-fill`, `meteocons-line`, `ha-official`, `wcc-2`, or `custom` |
 | Icon Pack Path | String | Path template for `custom` icon pack (e.g. `/local/icons/{condition}.svg`) |
 | Show Static Icons | Boolean | Disable animated icons |
 | Time Format | String | `system` (follows HA Settings → Profile), `12hour`, or `24hour` |
-| Locale | String | Locale for timestamp and moon phase formatting. Supported: `bg`, `ru`, `ua`, `de`, `fr`, `it`, `nl`, `pl`, `da`, `es`, `he` — when empty, the card follows the Home Assistant interface language |
+| Locale | String | Locale for timestamp and moon phase formatting. Supported: `bg`, `cs`, `da`, `de`, `en`, `es`, `fr`, `he`, `it`, `nl`, `pl`, `ru`, `sr` (Cyrillic), `sr-Latn` (Latin), `ua` — when empty, the card follows the Home Assistant interface language |
 | Compact slot labels | Boolean | Shorter slot label wording (`option_compact_slots`) |
 | Show Gust in Wind Slot | Boolean | Append the gust value to the wind slot |
 | Show Beaufort | Boolean | Prefix the wind slot with the Beaufort force |
@@ -916,7 +933,7 @@ Almost all settings can be configured in the GUI editor. The YAML reference belo
 | `hold_action` | Action | none | Action on hold |
 | `double_tap_action` | Action | none | Action on double-tap |
 | `option_static_icons` | Boolean | `false` | Use non-animated icons |
-| `icon_pack` | String | `default` | Icon pack: `default`, `meteocons-fill`, `meteocons-line`, `wcc-2`, `custom` |
+| `icon_pack` | String | `default` | Icon pack: `default`, `meteocons-fill`, `meteocons-line`, `ha-official`, `wcc-2`, `custom` |
 | `icon_pack_path` | String | — | Path template for custom icon pack |
 
 ## Actions
@@ -947,7 +964,7 @@ double_tap_action:
 ```
 
 | `option_time_format` | String | `system` | `system` (follows HA Settings → Profile), `12hour` or `24hour` |
-| `option_locale` | String | none | Locale for timestamp and moon phase: `bg`, `ru`, `ua`, `de`, `fr`, `it`, `nl`, `pl`, `da`, `es`, `he` |
+| `option_locale` | String | none | Locale for timestamp and moon phase: `bg`, `cs`, `da`, `de`, `en`, `es`, `fr`, `he`, `it`, `nl`, `pl`, `ru`, `sr`, `sr-Latn`, `ua` |
 | `text_update_time_prefix` | String | none | Prefix for the update time display |
 
 ## Overview Settings
@@ -1086,7 +1103,6 @@ Default slot values: l1=`forecast_max`, l2=`forecast_min`, l3=`wind`, l4=`pressu
 
 | Variable | Type | Default | Description |
 | -------- | ---- | ------- | ----------- |
-| `show_section_charts` | Boolean | `true` | Show/hide the charts section |
 | `option_show_temperature_chart` | Boolean | `false` | Show max/min temperature lines. Hides the max/min text in the forecast columns while on |
 | `option_show_precipitation_chart` | Boolean | `false` | Show precipitation bars. Hides the millimetre text in the forecast columns while on |
 
