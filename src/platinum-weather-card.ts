@@ -103,6 +103,8 @@ export class PlatinumWeatherCard extends LitElement {
   private static _lastDaylightCloud: { t: number; f: number } | null = null;
   // When it last rained, so a gap between showers does not read as fine weather.
   private static _lastRain: { t: number; rate: number } | null = null;
+  // The last real gauge reading, for the icon: see _gaugeRateForIcon().
+  private static _gaugeSeen: { entity: string; t: number; rate: number } | null = null;
 
   private _error: string[] = [];
 
@@ -402,6 +404,15 @@ export class PlatinumWeatherCard extends LitElement {
     }
     if (changedProps.has("_config") || !this._subscribed) {
       this._subscribeForecastEvents();
+    }
+    // Its own condition, not _subscribed's: that is only ever set when there is
+    // a weather_entity to subscribe to (and a forecast_type other than legacy).
+    // Without one it stays unset, so hanging this off it re-issued the hourly
+    // subscription after every update — and each re-issue is itself a state
+    // change that schedules the next update. A browser tab, not a test, found
+    // that (#23). It still retries on every update until the hourly entity
+    // exists, which is the point of not subscribing only once up front.
+    if (changedProps.has("_config") || !this._hourlySubscribed) {
       this._subscribeHourly();
     }
     // mark tappable slots so CSS can show a pointer cursor only where a tap will work
@@ -3022,6 +3033,27 @@ export class PlatinumWeatherCard extends LitElement {
     return tCard(this.locale, key);
   }
 
+  // The gauge as the icon should read it: the live value, or the last real one
+  // if the station has dropped out within the minute. It reports 'unavailable'
+  // for a second or seven every so often (20:14:58 on 14 October, 08:06:09 on
+  // 17 October); read as 'no gauge', each one handed the icon back to the
+  // provider's rain for as long as it lasted. Only the icon holds on — the
+  // slot goes on showing the truth — and only for a minute, so a gauge that has
+  // really died cannot go on overruling for ever.
+  private _gaugeRateForIcon(): number | null {
+    const entity = this._config?.entity_rain_rate;
+    const live = this.measuredRainRate;
+    const cls = this.constructor as typeof PlatinumWeatherCard;
+    const now = Date.now();
+    if (live !== null && entity) {
+      cls._gaugeSeen = { entity, t: now, rate: live };
+      return live;
+    }
+    const seen = cls._gaugeSeen;
+    if (entity && seen && seen.entity === entity && now - seen.t <= 60000) return seen.rate;
+    return null;
+  }
+
   get measuredRainRate(): number | null {
     const entity = this._config.entity_rain_rate;
     if (!entity) return null;
@@ -3690,7 +3722,7 @@ export class PlatinumWeatherCard extends LitElement {
       // touch, which is also the state it most often gets wrong: seen reporting
       // cloudy against a measured 17%.
       let isPlainSky = /^(clear|cloudy(-[123])?)(-(day|night))?$/.test(adjusted);
-      const rate = this.measuredRainRate;
+      const rate = this._gaugeRateForIcon();
 
       // A provider reporting rain, snow or a storm usually knows something the
       // sensors cannot see — but not when they flatly contradict it. Two ways
@@ -3727,7 +3759,15 @@ export class PlatinumWeatherCard extends LitElement {
         adjusted = `${name}-${this.dayOrNight}`;
       } else if (isPlainSky) {
         const cloud = this.measuredCloudFraction;
-        if (cloud !== null) {
+        if (cloud === null && rainDenied) {
+          // The gauge has ruled the rain out, and the sky cannot be measured —
+          // after dark, or with the sun under the cut-off — so there is nothing
+          // to say which cloud it is. Rain does mean cloud, though, and plain
+          // overcast is the one claim the provider's own report supports. The
+          // alternative was to decide the rain was not real and then keep
+          // showing it: provider 'rainy', gauge 0.0 mm/h, 14 and 17 October.
+          adjusted = 'cloudy';
+        } else if (cloud !== null) {
           // Ordinary meteorological bands, with hysteresis so a value sitting on
           // a boundary does not alternate: an icon that changes every few
           // minutes is worse than one that lags by a few.
@@ -3972,12 +4012,21 @@ export class PlatinumWeatherCard extends LitElement {
   get dayOrNight(): string {
     if (this._config.entity_sun && this.hass.states[this._config.entity_sun] !== undefined) {
       const sun = this.hass.states[this._config.entity_sun];
-      // Use numeric elevation attribute — language-independent (state string is translated in non-English HA)
-      if (sun.attributes?.elevation !== undefined) {
-        return sun.attributes.elevation > 0 ? 'day' : 'night';
+      // The sun entity's own verdict: Home Assistant flips it where the upper
+      // limb meets the horizon, about 0.83° below the centre reaching it, and
+      // the sunrise and sunset slots count from that instant. Waiting for the
+      // elevation to clear 0° instead lagged it by some five minutes at each
+      // end — a moon on the card at 07:23 with the sunrise slot already
+      // pointing at tomorrow's.
+      if (sun.state === 'above_horizon') return 'day';
+      if (sun.state === 'below_horizon') return 'night';
+      // An entity that is unavailable or an unexpected value: the elevation, at
+      // the same horizon Home Assistant uses.
+      const elevation = Number(sun.attributes?.elevation);
+      if (sun.attributes?.elevation !== undefined && isFinite(elevation)) {
+        return elevation > -0.833 ? 'day' : 'night';
       }
-      // Fallback: English state strings only
-      return sun.state === 'above_horizon' ? 'day' : 'night';
+      return 'night';
     }
     return 'day';
   }

@@ -1,0 +1,178 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import '../src/platinum-weather-card';
+import { makeHass, baseConfig, renderCard } from './helpers';
+
+// What the main icon shows when the sensors and the provider disagree, run
+// through the card rather than read out of its source: the correction has two
+// halves — deciding the provider is wrong, and choosing what to show instead —
+// and a source-level test can see only that each exists.
+
+type Card = HTMLElement & { updateComplete: Promise<unknown>; hass: unknown };
+
+interface Scene {
+  condition?: string;
+  rain?: string | null; // null = no gauge configured
+  solar?: string;
+  sunState?: string;
+  elevation?: number;
+  config?: Record<string, unknown>;
+}
+
+function scene(s: Scene = {}) {
+  const states: Record<string, { state: string; attributes?: Record<string, unknown> }> = {
+    'sensor.temp': { state: '8', attributes: { unit_of_measurement: '°C' } },
+    'sensor.condition': { state: s.condition ?? 'rainy' },
+    'sun.sun': {
+      state: s.sunState ?? 'below_horizon',
+      attributes: s.elevation === undefined ? {} : { elevation: s.elevation, azimuth: 100 },
+    },
+    'sensor.solar': { state: s.solar ?? '0' },
+  };
+  if (s.rain !== null) states['sensor.rain'] = { state: s.rain ?? '0.0' };
+  const config = baseConfig({
+    section_order: ['overview'],
+    overview_layout: 'complete',
+    entity_temperature: 'sensor.temp',
+    entity_forecast_icon: 'sensor.condition',
+    entity_sun: 'sun.sun',
+    entity_solar_radiation: 'sensor.solar',
+    option_cloud_overrides_icon: true,
+    ...(s.rain === null ? {} : { entity_rain_rate: 'sensor.rain' }),
+    ...s.config,
+  } as never);
+  return { config, hass: makeHass(states) };
+}
+
+async function mount(s: Scene = {}): Promise<Card> {
+  const { config, hass } = scene(s);
+  return (await renderCard(config, hass)) as Card;
+}
+
+function iconSrc(el: HTMLElement): string {
+  const img = el.shadowRoot?.querySelector('.icon, img, .conditions');
+  return (
+    img?.getAttribute('src') ??
+    (img as HTMLElement | null)?.style?.backgroundImage ??
+    el.shadowRoot?.innerHTML.match(/[\w-]+\.svg/)?.[0] ??
+    ''
+  );
+}
+
+async function swapStates(el: Card, s: Scene) {
+  el.hass = scene(s).hass;
+  await el.updateComplete;
+  await el.updateComplete;
+}
+
+beforeEach(() => {
+  // the held gauge reading and the cloud band live on the class
+  const cls = customElements.get('platinum-weather-card-plus-charts') as unknown as Record<string, unknown>;
+  cls._gaugeSeen = null;
+  cls._cloudBand = null;
+  cls._cloudSamples = [];
+});
+afterEach(() => vi.useRealTimers());
+
+describe('a provider claiming rain against a dry gauge, with no cloud measurable', () => {
+  // Observed 14 and 17 October: provider 'rainy' all evening and at dawn, the
+  // gauge reading 0.0 mm/h, and the pyranometer unable to say anything — the
+  // sun below the horizon, or under the 10° morning cut-off. The card decided
+  // the rain was not real and then had nothing to put in its place.
+
+  it('does not keep the rain icon at night', async () => {
+    const el = await mount({ condition: 'rainy', rain: '0.0', solar: '0', sunState: 'below_horizon', elevation: -22 });
+    expect(iconSrc(el), 'a dry gauge was overruled by the provider').not.toMatch(/rainy/);
+  });
+
+  it('shows plain overcast instead, which is what rain implies', async () => {
+    const el = await mount({ condition: 'rainy', rain: '0.0', solar: '0', sunState: 'below_horizon', elevation: -22 });
+    expect(iconSrc(el)).toMatch(/cloudy/);
+  });
+
+  it('does the same at dawn, with the sun under the morning cut-off', async () => {
+    const el = await mount({ condition: 'rainy', rain: '0.0', solar: '21', sunState: 'above_horizon', elevation: 6.3 });
+    expect(iconSrc(el)).not.toMatch(/rainy/);
+    expect(iconSrc(el)).toMatch(/cloudy/);
+  });
+
+  it('prefers the measured sky when there is one', async () => {
+    // 20% cloud at 35° under a provider claiming rain: the pyranometer wins.
+    const el = await mount({ condition: 'rainy', rain: '0.0', solar: '560', sunState: 'above_horizon', elevation: 35 });
+    expect(iconSrc(el)).not.toMatch(/rainy/);
+  });
+
+  it('leaves the provider alone when no gauge is configured', async () => {
+    const el = await mount({ condition: 'rainy', rain: null, solar: '0', sunState: 'below_horizon', elevation: -22 });
+    expect(iconSrc(el)).toMatch(/rainy/);
+  });
+
+  it('leaves the provider alone when the gauge reads rain', async () => {
+    const el = await mount({ condition: 'rainy', rain: '1.2', solar: '0', sunState: 'below_horizon', elevation: -22 });
+    expect(iconSrc(el)).toMatch(/rainy/);
+  });
+
+  it('leaves a thunderstorm to the provider', async () => {
+    const el = await mount({ condition: 'lightning-rainy', rain: '0.0', solar: '0', sunState: 'below_horizon', elevation: -22 });
+    expect(iconSrc(el)).not.toMatch(/cloudy\.svg$/);
+  });
+});
+
+describe('a gauge that drops out for a moment', () => {
+  // The station's gauge goes 'unavailable' for one to seven seconds every so
+  // often (20:14:58 on 14 October, 08:06:09 on 17 October). Read as 'no gauge',
+  // each blip sent the provider's rain icon back for as long as it lasted.
+  const night: Scene = { condition: 'rainy', solar: '0', sunState: 'below_horizon', elevation: -22 };
+
+  it('keeps the correction through the blip', async () => {
+    const el = await mount({ ...night, rain: '0.0' });
+    expect(iconSrc(el)).not.toMatch(/rainy/);
+    await swapStates(el, { ...night, rain: 'unavailable' });
+    expect(iconSrc(el), 'the rain icon flashed back').not.toMatch(/rainy/);
+  });
+
+  it('keeps a real shower through the blip too', async () => {
+    const el = await mount({ ...night, condition: 'cloudy', rain: '2.0' });
+    expect(iconSrc(el)).toMatch(/rainy/);
+    await swapStates(el, { ...night, condition: 'cloudy', rain: 'unavailable' });
+    expect(iconSrc(el)).toMatch(/rainy/);
+  });
+
+  it('forgets the reading after a minute, so a dead gauge cannot overrule for ever', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-17T05:00:00Z'));
+    const el = await mount({ ...night, rain: '0.0' });
+    expect(iconSrc(el)).not.toMatch(/rainy/);
+    vi.setSystemTime(new Date('2026-10-17T05:01:30Z'));
+    await swapStates(el, { ...night, rain: 'unavailable' });
+    expect(iconSrc(el), 'a ninety-second-old reading still in charge').toMatch(/rainy/);
+  });
+
+  it('does not invent a reading it never had', async () => {
+    const el = await mount({ ...night, rain: 'unavailable' });
+    expect(iconSrc(el)).toMatch(/rainy/);
+  });
+});
+
+describe('day and night follow the sun entity, as Home Assistant does', () => {
+  // Home Assistant flips sun.sun at -0.83°, where the upper limb meets the
+  // horizon. The card used to wait for the centre to clear 0°, about five
+  // minutes later: at 07:23 on 16 October the icon was a moon while the sun
+  // slot beside it already counted the sun as risen.
+  const sunny = (sunState: string, elevation?: number) =>
+    mount({ condition: 'sunny', rain: null, solar: '0', sunState, elevation, config: { option_cloud_overrides_icon: false } });
+
+  it('is day from the moment the sun entity says above_horizon', async () => {
+    const el = await sunny('above_horizon', -0.5);
+    expect(iconSrc(el), 'a moon with the sun above the horizon').not.toMatch(/night/);
+  });
+
+  it('is night from the moment it says below_horizon', async () => {
+    const el = await sunny('below_horizon', 0.3);
+    expect(iconSrc(el)).toMatch(/night/);
+  });
+
+  it('falls back to the elevation, at the horizon Home Assistant uses, if the state is unusable', async () => {
+    expect(iconSrc(await sunny('unknown', -0.5))).not.toMatch(/night/);
+    expect(iconSrc(await sunny('unknown', -2))).toMatch(/night/);
+  });
+});
