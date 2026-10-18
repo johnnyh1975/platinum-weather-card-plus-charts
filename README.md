@@ -5,7 +5,9 @@
 <h1 align="center">Platinum Weather Card Plus Charts</h1>
 
 <p align="center">
-  <img src="images/platinum-weather-card.png" alt="The card with its Charts section" width="420">
+  <img src="images/card-daily.png" alt="The card with the Daily tab open, and its Charts section" width="371">
+  &nbsp;&nbsp;
+  <img src="images/card-hourly.png" alt="The same card with the Hourly tab open" width="436">
 </p>
 
 
