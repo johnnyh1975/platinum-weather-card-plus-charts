@@ -874,7 +874,7 @@ Opened with the settings button on the **Hourly forecast** row:
 ### What it shows
 
 <p align="center">
-  <img src="images/hourly-forecast.png" alt="The card with the Daily and Hourly tabs, Hourly open" width="420">
+  <img src="images/card-hourly.png" alt="The card with the Daily and Hourly tabs, Hourly open" width="436">
 </p>
 
 A column per hour — time in the card's locale, icon, temperature — starting at the hour in progress. Temperatures follow the same decimals setting as the overview (`option_today_temperature_decimals`). The columns scroll sideways, each keeping a minimum width, so the span stays readable rather than being squeezed across a phone.
