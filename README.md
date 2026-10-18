@@ -30,6 +30,21 @@ The card is in the HACS default store:
 1. HACS → search for **Platinum Weather Card Plus Charts**
 2. Download
 3. Hard-refresh your browser
+4. Add the card to a dashboard, with the visual editor or in YAML:
+
+   ```yaml
+   type: custom:platinum-weather-card-plus-charts
+   ```
+
+### Coming from the original Platinum Weather Card?
+
+If you used [Platinum Weather Card](https://github.com/tommyjlong/platinum-weather-card), your configuration carries over: every option and slot name from its documentation is supported here, including the per-day `entity_forecast_*_1` sensors, so you don't need a weather entity.
+
+1. Install this card from HACS, as above.
+2. In your card's YAML, change `type: custom:platinum-weather-card` to `type: custom:platinum-weather-card-plus-charts`.
+3. Hard-refresh. The charts and the hourly forecast are extra sections you can switch on in the editor.
+
+The two cards register under different names, so you can try this one beside the old one and switch over card by card.
 
 ---
 
