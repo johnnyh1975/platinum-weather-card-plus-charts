@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="images/banner.svg" alt="" width="620">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/banner.svg" alt="" width="620">
 </p>
 
 <h1 align="center">Platinum Weather Card Plus Charts</h1>
 
 <p align="center">
-  <img src="images/card-daily.png" alt="The card with the Daily tab open, and its Charts section" width="371">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/card-daily.png" alt="The card with the Daily tab open, and its Charts section" width="371">
   &nbsp;&nbsp;
-  <img src="images/card-hourly.png" alt="The same card with the Hourly tab open" width="436">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/card-hourly.png" alt="The same card with the Hourly tab open" width="436">
 </p>
 
 
@@ -20,7 +20,7 @@ Based on the original Platinum Weather Card by [@makin-things](https://www.githu
 [![Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frudizl%2Fplatinum-weather-card-plus-charts%2Fmaster%2Fbadges%2Fdownloads.json&style=flat)](https://github.com/rudizl/platinum-weather-card-plus-charts/releases)
 ![Maintenance](https://img.shields.io/badge/MAINTAINED-YES-green?style=flat)
 ![Last Commit](https://img.shields.io/github/last-commit/rudizl/platinum-weather-card-plus-charts?style=flat)
-[![License][license-shield]](LICENSE)
+[![License][license-shield]](https://github.com/rudizl/platinum-weather-card-plus-charts/blob/master/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/rudizl/platinum-weather-card-plus-charts/build.yml?branch=master&style=flat&label=CI)](https://github.com/rudizl/platinum-weather-card-plus-charts/actions/workflows/build.yml)
 
 ## Installation
@@ -38,7 +38,7 @@ The card is in the HACS default store:
 
 ### Coming from the original Platinum Weather Card?
 
-If you used [Platinum Weather Card](https://github.com/tommyjlong/platinum-weather-card), your configuration carries over: every option and slot name from its documentation is supported here, including the per-day `entity_forecast_*_1` sensors, so you don't need a weather entity.
+If you used [Platinum Weather Card](https://github.com/tommyjlong/platinum-weather-card), your configuration carries over: every option and slot name from its documentation is supported here, including the per-day `entity_forecast_*_1` sensors, so the card works without a weather entity. The charts are the exception: they are drawn from a weather entity's forecast, so set `weather_entity` if you want them.
 
 1. Install this card from HACS, as above.
 2. In your card's YAML, change `type: custom:platinum-weather-card` to `type: custom:platinum-weather-card-plus-charts`.
@@ -411,7 +411,7 @@ Features added along the way: the `moon` slot with its phase icons, `option_show
 # Sections
 
 <p align="center">
-  <img src="images/editor-sections.png" alt="The section list in the editor" width="720">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/editor-sections.png" alt="The section list in the editor" width="720">
 </p>
 
 - **Warnings** — weather alerts from a MeteoAlarm-compatible sensor
@@ -432,10 +432,10 @@ Four layout options are available:
 
 | Layout | Preview |
 |--------|---------| 
-| **Complete** | ![](./images/overview-section-complete.png) |
-| **Observations** | ![](./images/overview-section-observations.png) |
-| **Forecast** | ![](./images/overview-section-forecast.png) |
-| **Title Only** | ![](./images/overview-section-title-only.png) |
+| **Complete** | ![](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/overview-section-complete.png) |
+| **Observations** | ![](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/overview-section-observations.png) |
+| **Forecast** | ![](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/overview-section-forecast.png) |
+| **Title Only** | ![](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/overview-section-title-only.png) |
 
 | Option | Type | Description |
 | ------ | ---- | ----------- |
@@ -471,7 +471,7 @@ A **Verbose forecast text** toggle expands the short phrase into a full sentence
 
 | Short | Verbose |
 |-------|---------|
-| ![Editor options and short forecast](images/overview-options-zambretti.png) | ![Verbose forecast](images/local-forecast-zambretti.png) |
+| ![Editor options and short forecast](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/overview-options-zambretti.png) | ![Verbose forecast](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/local-forecast-zambretti.png) |
 
 Inputs used:
 
@@ -582,7 +582,7 @@ None of this is fixable within Zambretti; the missing input is cloud cover, whic
 >
 > - **In the station (recommended)** — Ecowitt/WSView Plus → Calibration → **Altitude for REL** (leave *Abs Offset* at 0.0, that field corrects the absolute reading, which is already right). This also fixes what the station uploads to Weather Underground and the like.
 >
->   ![Ecowitt calibration](images/ecowitt-altitude-calibration.png)
+>   ![Ecowitt calibration](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/ecowitt-altitude-calibration.png)
 >
 > - **In the card** — fill the *Station altitude (m)* field, and the card applies the barometric correction itself using the current temperature.
 >
@@ -624,7 +624,7 @@ Where several entities feed it, **Separate sources** puts each on its own line r
 Each column holds up to eight slots, chosen from the list below and configured here:
 
 <p align="center">
-  <img src="images/slots-section-highlighted.png" alt="Slot configuration in the editor" width="720">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/slots-section-highlighted.png" alt="Slot configuration in the editor" width="720">
 </p>
 
 Up to 8 rows of data in 2 columns. The required entities update dynamically based on which slots are selected.
@@ -699,7 +699,7 @@ A **lightning detector** can add a row of its own. Point **Lightning distance en
 
 This is deliberately part of the warnings section rather than a slot. An approaching storm is a warning in the same sense a rain alert is, and the section already appears and vanishes on its own, where a slot would sit empty most of the time — six weeks of readings at the station this was built against recorded no strikes at all. **Show expiry time** appends when it lifts; without it the row states the hazard alone.
 
-![Warnings section](images/warnings-section.png)
+![Warnings section](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/warnings-section.png)
 
 Two hazard types from the same feed, on a Bulgarian card: high temperature and rain. The icon follows the hazard, the bar follows the level, and the expiry time is formatted in the card's locale.
 
@@ -783,7 +783,7 @@ The two are independent: the sun override only changes day to night and back, ne
 ## Icon Packs
 
 <p align="center">
-  <img src="images/editor-icon-pack.png" alt="Choosing an icon pack" width="720">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/editor-icon-pack.png" alt="Choosing an icon pack" width="720">
 </p>
 
 The card supports multiple icon packs, selectable from the editor's **Global Options → Icon Pack** dropdown.
@@ -816,7 +816,7 @@ For `custom`, set `icon_pack_path` to a path template such as `/local/my-icons/{
 Hovering a column shows the full forecast for that day, including the precipitation amount:
 
 <p align="center">
-  <img src="images/tooltip-forecast.png" alt="Forecast tooltip on hover" width="420">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/tooltip-forecast.png" alt="Forecast tooltip on hover" width="420">
 </p>
 
 Two layout options: **Horizontal** (default, up to 5 days) and **Vertical** (up to 7 days).
@@ -843,7 +843,7 @@ Hovering over any forecast day column shows a tooltip with date, weather descrip
 
 With **Show date next to day** enabled, the date follows the day name and the label shrinks to fit:
 
-![Daily forecast with dates](images/daily-forecast-dates.png)
+![Daily forecast with dates](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/daily-forecast-dates.png)
 
 ## Hourly Forecast Section
 
@@ -873,7 +873,7 @@ Both off shows nothing, which is what it ought to do. The Hourly forecast switch
 Opened with the settings button on the **Hourly forecast** row:
 
 <p align="center">
-  <img src="images/editor-hourly.png" alt="The Hourly forecast settings in the editor" width="720">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/editor-hourly.png" alt="The Hourly forecast settings in the editor" width="720">
 </p>
 
 | Setting | Key | Default | |
@@ -889,7 +889,7 @@ Opened with the settings button on the **Hourly forecast** row:
 ### What it shows
 
 <p align="center">
-  <img src="images/card-hourly.png" alt="The card with the Daily and Hourly tabs, Hourly open" width="436">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/card-hourly.png" alt="The card with the Daily and Hourly tabs, Hourly open" width="436">
 </p>
 
 A column per hour — time in the card's locale, icon, temperature — starting at the hour in progress. Temperatures follow the same decimals setting as the overview (`option_today_temperature_decimals`). The columns scroll sideways, each keeping a minimum width, so the span stays readable rather than being squeezed across a phone.
@@ -919,7 +919,7 @@ An integrated chart rendered directly below the daily forecast, showing the same
 | Show Temperature Chart | Boolean | Show max/min temperature polylines |
 | Show Precipitation Chart | Boolean | Show precipitation bars with mm labels |
 
-The chart uses the same weather entity forecast subscription as the daily forecast section. No additional entities are required.
+The chart is drawn from the weather entity's daily forecast, the same subscription the forecast strip uses, so no additional entities are required. It needs a `weather_entity`: a card driven only by per-day sensors (`entity_forecast_icon_1` and the like) has no forecast to draw from, and the charts section stays empty, with no message.
 
 Hovering over any chart column shows the same tooltip as hovering over the corresponding forecast column.
 
@@ -927,17 +927,17 @@ Hovering over any chart column shows the same tooltip as hovering over the corre
 
 When the **Charts section is disabled**, max/min temperature and precipitation are shown as text directly in each forecast column:
 
-![Forecast columns without charts](images/forecast-columns-no-charts.png)
+![Forecast columns without charts](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/forecast-columns-no-charts.png)
 
 When the **Charts section is enabled**, the same data is rendered visually as temperature lines (max in orange, min in blue) and precipitation bars in the chart strip below the forecast. The text values are automatically hidden to avoid duplication — the chart already tells the full story.
 
-![Forecast columns with charts](images/daily-forecast-dates.png)
+![Forecast columns with charts](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/daily-forecast-dates.png)
 
 The same five days either way. The whole card in each mode:
 
 | Without charts | With charts |
 |----------------|-------------|
-| ![Card without charts](images/classic-weather-forecast.png) | ![Card with charts](images/platinum-weather-card.png) |
+| ![Card without charts](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/classic-weather-forecast.png) | ![Card with charts](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/platinum-weather-card.png) |
 
 The two charts are independent, and each hides only its own row:
 
@@ -951,7 +951,7 @@ So a card with the precipitation chart on and the temperature chart off shows th
 ## Global Options
 
 <p align="center">
-  <img src="images/global-options.png" alt="Global options in the editor" width="720">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/global-options.png" alt="Global options in the editor" width="720">
 </p>
 
 | Option | Type | Description |
@@ -993,7 +993,7 @@ Almost all settings can be configured in the GUI editor. The YAML reference belo
 
 The card supports all standard [HA actions](https://www.home-assistant.io/dashboards/actions/), configurable from **Global Options → Actions** in the editor:
 
-![Editor actions](images/editor-actions.png)
+![Editor actions](https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/editor-actions.png)
 
 Some YAML examples:
 
