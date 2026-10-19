@@ -1663,21 +1663,71 @@ export class PlatinumWeatherCard extends LitElement {
     `;
   }
 
+  // The sensor for day i of a per-day series: the configured entity with the number
+  // at the end of its name stepped on by i, exactly as the forecast strip does it.
+  // Undefined for a weather entity, a name with no number, or nothing configured.
+  private _perDayEntity(key: string, i: number): string | undefined {
+    const base = (this._config as unknown as Record<string, unknown>)[key];
+    if (typeof base !== 'string' || base.match('^weather.')) return undefined;
+    const start = base.match(/(\d+)(?!.*\d)/g);
+    return start ? base.replace(/(\d+)(?!.*\d)/g, String(Number(start) + i)) : undefined;
+  }
+
+  // The chart's days, read from per-day sensors instead of a forecast array.
+  private _perDaySensorChartData(days: number): { maxT: number; minT: number; precip: number; windSpeed: number | null; windBear: number | null; datetime: string }[] {
+    const out: { maxT: number; minT: number; precip: number; windSpeed: number | null; windBear: number | null; datetime: string }[] = [];
+    const value = (key: string, i: number): number => {
+      const entity = this._perDayEntity(key, i);
+      const state = entity ? this.hass.states[entity]?.state : undefined;
+      return state === undefined || state === '' ? NaN : Number(state);
+    };
+    for (let i = 0; i < days; i++) {
+      // same cut-off as the strip: no icon sensor for this day means no day
+      const icon = this._perDayEntity('entity_forecast_icon_1', i);
+      if (!icon || this.hass.states[icon] === undefined) break;
+      const day = new Date();
+      day.setDate(day.getDate() + i + (this._config.option_show_current_day ? 0 : 1));
+      const rain = value('entity_pos_1', i);
+      out.push({
+        // a sensor that is unavailable is a gap in the line, which the drawing
+        // already copes with; it must not become a zero
+        maxT: value('entity_forecast_max_1', i),
+        minT: value('entity_forecast_min_1', i),
+        // but in the rain scale a NaN would take every bar with it
+        precip: isFinite(rain) ? rain : 0,
+        windSpeed: null,
+        windBear: null,
+        datetime: day.toISOString(),
+      });
+    }
+    return out;
+  }
+
   private _renderChartSection(): TemplateResult {
     if (this._config.show_section_charts === false) return html``;
-    const showTemp   = this._config.option_show_temperature_chart === true;
-    const showPrecip = this._config.option_show_precipitation_chart === true;
+    // A forecast array comes from a weather entity. A card configured the way the
+    // original Platinum card was — per-day sensors, entity_forecast_*_1 with a
+    // trailing number — has none, and used to get no chart at all, silently, beside
+    // a forecast strip that worked. It reads the same sensors the strip does.
+    const sensorMode = !this.forecast1 || this.forecast1.length === 0;
+    // From sensors, a chart needs the sensor it plots: temperatures without a maximum
+    // sensor, or rain without one, would be a chart of nothing but zeroes.
+    const showTemp   = this._config.option_show_temperature_chart === true
+      && (!sensorMode || this._perDayEntity('entity_forecast_max_1', 0) !== undefined);
+    const showPrecip = this._config.option_show_precipitation_chart === true
+      && (!sensorMode || this._perDayEntity('entity_pos_1', 0) !== undefined);
     if (!showTemp && !showPrecip) return html``;
-    if (!this.forecast1 || this.forecast1.length === 0) return html``;
 
     const days = this._config.daily_forecast_days || 5;
 
     const compassMapC = (this.constructor as typeof PlatinumWeatherCard).COMPASS_DEG;
-    const data: { maxT: number; minT: number; precip: number; windSpeed: number | null; windBear: number | null; datetime: string }[] = [];
+    const data: { maxT: number; minT: number; precip: number; windSpeed: number | null; windBear: number | null; datetime: string }[]
+      = sensorMode ? this._perDaySensorChartData(days) : [];
     // Resolve each day by date, exactly like the daily forecast strip does, so the
     // chart can never plot a day the strip is not showing (indices and dates drift
     // apart when the provider's forecast array starts on a different day).
-    for (let i = 0; i < days; i++) {
+    // (Only for a forecast array; the sensors were read above.)
+    for (let i = 0; !sensorMode && i < days; i++) {
       const forecastDate = new Date();
       forecastDate.setDate(forecastDate.getDate() + i + (this._config.option_show_current_day ? 0 : 1));
       const prop = (key: string): string | undefined => this._getForecastPropFromWeather(this.forecast1, forecastDate, key);
@@ -1751,9 +1801,10 @@ export class PlatinumWeatherCard extends LitElement {
 
     // Precipitation unit: entity attribute first (HA converts forecast values
     // to this unit), then unit-system fallback; localized for display
-    const _precipUnit = this._localizeUnit(
-      (this._config.entity ? (this.hass.states[this._config.entity]?.attributes?.precipitation_unit as string | undefined) : undefined)
-      || this.getUOM('precipitation'));
+    const _precipUnit = this._localizeUnit(sensorMode
+      ? this._precipUnit(this._perDayEntity('entity_pos_1', 0))
+      : (this._config.entity ? (this.hass.states[this._config.entity]?.attributes?.precipitation_unit as string | undefined) : undefined)
+        || this.getUOM('precipitation'));
 
     // ── Per-column HTML ────────────────────────────────────────────────────
     const colItems = data.map((d, i) => {
@@ -1801,7 +1852,9 @@ export class PlatinumWeatherCard extends LitElement {
         _chartCond = this.hass.states[_summaryEntity] ? this.hass.states[_summaryEntity].state : '';
       }
       const _uomWind = this._getWindUnit();
-      const _uomPrecip = (this._config.entity ? (this.hass.states[this._config.entity]?.attributes?.precipitation_unit as string | undefined) : undefined) || this.getUOM('precipitation');
+      const _uomPrecip = sensorMode
+        ? this._precipUnit(this._perDayEntity('entity_pos_1', 0))
+        : (this._config.entity ? (this.hass.states[this._config.entity]?.attributes?.precipitation_unit as string | undefined) : undefined) || this.getUOM('precipitation');
       const ttRows3 = this._buildTooltipRows({ date: ttDate, condition: _chartCond, maxT: showTemp ? d.maxT : null, minT: showTemp ? d.minT : null, precip: d.precip, windSpeed: d.windSpeed, windBearDeg: d.windBear, uomPrecip: _uomPrecip, uomWind: _uomWind });
       const tooltipHtml = `<div class="fcasttooltipblock" style="width:${data.length * 100}%;left:-${i * 100}%;">`
         + ttRows3

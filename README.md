@@ -38,7 +38,7 @@ The card is in the HACS default store:
 
 ### Coming from the original Platinum Weather Card?
 
-If you used [Platinum Weather Card](https://github.com/tommyjlong/platinum-weather-card), your configuration carries over: every option and slot name from its documentation is supported here, including the per-day `entity_forecast_*_1` sensors, so the card works without a weather entity. The charts are the exception: they are drawn from a weather entity's forecast, so set `weather_entity` if you want them.
+If you used [Platinum Weather Card](https://github.com/tommyjlong/platinum-weather-card), your configuration carries over: every option and slot name from its documentation is supported here, including the per-day `entity_forecast_*_1` sensors, so the card works without a weather entity, charts included: they are drawn from those sensors.
 
 1. Install this card from HACS, as above.
 2. In your card's YAML, change `type: custom:platinum-weather-card` to `type: custom:platinum-weather-card-plus-charts`.
@@ -50,6 +50,24 @@ The two cards register under different names, so you can try this one beside the
 
 <details>
 <summary><strong>Changelog</strong></summary>
+
+**v2.5.1**
+
+**The charts now draw from per-day sensors** (#23, second report, from @BJReplay). A card configured the way the original Platinum Weather Card was — per-day sensors, `entity_forecast_icon_1` and the rest, no weather entity — drew its forecast strip but no chart. The charts read only a weather entity's forecast, found none, and drew nothing, with no message; and because the strip hides its own temperature and rain text when a chart is switched on, someone who had just migrated lost the figures from the columns and got no chart in their place, until they set a weather entity. The charts now read the same sensors as the strip, over the same days. A chart whose sensor is not configured is left out, rather than drawn as a line of zeroes.
+
+**The tab no longer hangs when `entity_hourly` is set without a `weather_entity`** (#23, reported by @hastarin with a complete diagnosis). The hourly subscription shared a condition with the daily one, which is only ever satisfied when there is a weather entity to subscribe to. Without one — or with `forecast_type: legacy` — it was re-issued after every update, and each re-issue is itself a state change that schedules the next update, so the tab never got a turn. It now has a condition of its own, and still retries until the hourly entity exists.
+
+**Fixes to the weather icon**
+- **A dry gauge that overrules a claimed rain now has something to show when the sky cannot be measured.** The card decided the rain was not real and then chose the replacement from the measured cloud cover alone. After dark, or with the sun under the 10° morning cut-off, there is none, so the provider's rain icon stayed: `rainy` all evening on 14 October and at dawn on 17 October, against a gauge reading 0.0 mm/h. Rain implies cloud, and plain overcast is the one thing the provider's own report supports, so that is what it shows. Where the sky *can* be measured, the measurement still decides
+- **A gauge that drops out for a moment no longer flashes the rain icon back.** The station's gauge reports `unavailable` for between one and seven seconds every so often, which was read as "no gauge" and handed the icon back to the provider for as long as it lasted. The icon now holds the last real reading for a minute; the rain rate slot is unaffected, and a gauge that has really died stops overruling anything after that minute
+- **Day and night follow the sun entity.** The card waited for the sun's elevation to clear 0°, but Home Assistant flips `sun.sun` where the upper limb meets the horizon, about 0.83° earlier, and the sunrise and sunset slots count from that instant. For some five minutes at each end the icon said night while the slot beside it said the sun had risen: a moon on the card at 07:23 on 16 October. The icon now uses the entity's own state, and falls back to the elevation at Home Assistant's horizon if the state is anything unexpected
+
+**Also**
+- The README now renders in HACS. It shows the file as raw text inside Home Assistant, where a relative image path resolves against Home Assistant rather than GitHub and gives a broken image; all of them are absolute now
+- A section for people arriving from the original Platinum Weather Card, which HACS no longer lists, and the step that was missing from the installation: what to put in the YAML
+- Twenty-six new tests run the card itself rather than read its source, each written first and shown failing against the old code
+
+---
 
 **v2.5.0**
 
@@ -752,7 +770,7 @@ Worth knowing about its limits:
 - **The clear-sky model uses a fixed atmospheric transmittance**, so it reads a little high in hazy or dusty air and a little low in very clean air. Good enough to tell clear from overcast; not a radiometric instrument.
 - **The sensor must be clean, level and unshaded.** A pyranometer that catches a roof edge each morning will report cloud that isn't there, every morning.
 
-If your station has a rain gauge, point **Rain rate entity** at it too (mm/h). A gauge sees what neither a forecast provider nor a pyranometer can — whether it is raining here, now — and it takes precedence over both: rain reported by the gauge replaces a clear or cloudy icon, with the intensity following the rate. It is not smoothed the way cloud cover is, because rain starting is an event rather than a state to average.
+If your station has a rain gauge, point **Rain rate entity** at it too (mm/h). A gauge sees what neither a forecast provider nor a pyranometer can — whether it is raining here, now — and it takes precedence over both: rain reported by the gauge replaces a clear or cloudy icon, with the intensity following the rate. It is not smoothed the way cloud cover is, because rain starting is an event rather than a state to average. The one exception is a gauge that drops out for a few seconds, as some stations do now and then: the icon holds its last reading for a minute, so the correction does not flicker, while the rain rate slot goes on showing the truth.
 
 The measurement can also correct the condition icon, under **Measurement corrects the icon**. The icon then follows the ordinary cloud bands — clear below 25%, lightly cloudy to 55%, cloudy to 85%, overcast above — rather than the provider's guess.
 
@@ -760,7 +778,7 @@ Only the plain sky icons are normally touched: rain, snow and fog are things a p
 
 **Sunlit and dry.** Full sunshine on the pyranometer with a dry gauge rules out a thunderstorm overhead, whatever the forecast area as a whole is doing. A provider covers a region; a station covers a garden. Cloud has to be under 15% for this, which is deliberately demanding.
 
-**A dry gauge against claimed rain.** When the provider says it is raining and the gauge says it is not, the gauge wins — whatever the sky is doing. A pyranometer cannot see rain, so cloud has no bearing on that claim; a gauge measures precisely the claim being made, and under an overcast sky it is the only instrument that can settle it. This is the commonest disagreement of all: grey, provider says rain, nothing falling. The icon then follows the measured cloud instead.
+**A dry gauge against claimed rain.** When the provider says it is raining and the gauge says it is not, the gauge wins — whatever the sky is doing. A pyranometer cannot see rain, so cloud has no bearing on that claim; a gauge measures precisely the claim being made, and under an overcast sky it is the only instrument that can settle it. This is the commonest disagreement of all: grey, provider says rain, nothing falling. The icon then follows the measured cloud instead. When the sky cannot be measured — after dark, or with the sun under the elevation cut-off — there is no cloud to follow, and the icon shows plain overcast: rain means cloud, and it is the one thing the provider's own report supports.
 
 It applies to rain only. A tipping bucket reads snow poorly and cannot see lightning at all, so snow, hail and storms stay with the provider. And it needs a gauge configured: with none, the provider stands, rather than an absent sensor being read as a dry one.
 
@@ -774,7 +792,7 @@ The bands are the meteorological ones rather than wide safety margins. A sensor 
 
 The provider supplies a condition, and the card draws it — but two things can overrule that, and both are about the card being able to see something the provider only predicts.
 
-**The sun decides day or night.** Providers pick the day or night variant from their own forecast periods, and some switch to the night daypart in mid-afternoon: they report `clear-night` with the sun still 35° up, and the card would dutifully draw a moon. When a **sun entity** is configured, its elevation wins instead. This is on by default (**Day/night icon from sun**); switch it off to take the provider's word.
+**The sun decides day or night.** Providers pick the day or night variant from their own forecast periods, and some switch to the night daypart in mid-afternoon: they report `clear-night` with the sun still 35° up, and the card would dutifully draw a moon. When a **sun entity** is configured, it decides: the icon is the day variant from the moment Home Assistant's sun entity says `above_horizon`, the same instant the sunrise and sunset slots count from. If the state is anything else, the card falls back to the elevation, taking the sun as up above −0.83°, the horizon Home Assistant uses. This is on by default (**Day/night icon from sun**); switch it off to take the provider's word.
 
 **The measurement can correct the condition itself.** That one is off by default and is described under [Cloud cover from a pyranometer](#cloud-cover-from-a-pyranometer) — briefly, a pyranometer and a rain gauge can contradict a forecast written hours ago for a region rather than a garden.
 
@@ -919,7 +937,7 @@ An integrated chart rendered directly below the daily forecast, showing the same
 | Show Temperature Chart | Boolean | Show max/min temperature polylines |
 | Show Precipitation Chart | Boolean | Show precipitation bars with mm labels |
 
-The chart is drawn from the weather entity's daily forecast, the same subscription the forecast strip uses, so no additional entities are required. It needs a `weather_entity`: a card driven only by per-day sensors (`entity_forecast_icon_1` and the like) has no forecast to draw from, and the charts section stays empty, with no message.
+The chart is drawn from the weather entity's daily forecast, the same subscription the forecast strip uses, so no additional entities are required. A card configured with per-day sensors (`entity_forecast_icon_1` and the like) and no weather entity draws its charts from those instead, over the same days as the strip: the temperature chart from `entity_forecast_max_1` and `entity_forecast_min_1`, the rain chart from `entity_pos_1`. A chart whose sensor isn't configured is left out rather than drawn as zeroes.
 
 Hovering over any chart column shows the same tooltip as hovering over the corresponding forecast column.
 
@@ -1102,7 +1120,7 @@ double_tap_action:
 | `option_color_fire_danger` | Boolean | `true` | Colour fire danger by severity |
 | `option_wind_bearing_icon` | Boolean | `false` | Show the wind bearing as a rotating arrow icon instead of compass text |
 | `option_compact_slots` | Boolean | `false` | Shorter slot label wording (Max, Min, ...) |
-| `option_sun_overrides_icon` | Boolean | `true` | Force the day/night variant of the current condition icon from the sun's elevation, overriding the provider |
+| `option_sun_overrides_icon` | Boolean | `true` | Force the day/night variant of the current condition icon from the sun entity's state (its elevation as a fallback), overriding the provider |
 | `option_moon_icon_only` | Boolean | `false` | Show only the moon phase icon, without the text |
 | `entity_solar_radiation` | String | none | Pyranometer in W/m², for the cloud cover slot |
 | `entity_cloud_cover` | String | none | Provider cloud cover, used at night when the pyranometer cannot help |
