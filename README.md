@@ -18,6 +18,7 @@ Based on the original Platinum Weather Card by [@makin-things](https://www.githu
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-blue.svg?style=flat)](https://github.com/hacs/default)
 [![GitHub Release][releases-shield]][releases]
 [![Downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frudizl%2Fplatinum-weather-card-plus-charts%2Fmaster%2Fbadges%2Fdownloads.json&style=flat)](https://github.com/rudizl/platinum-weather-card-plus-charts/releases)
+[![Buy me a beer](https://img.shields.io/badge/buy%20me%20a-beer%20%F0%9F%8D%BA-orange?style=flat)](https://buymeacoffee.com/rudizl)
 ![Maintenance](https://img.shields.io/badge/MAINTAINED-YES-green?style=flat)
 ![Last Commit](https://img.shields.io/github/last-commit/rudizl/platinum-weather-card-plus-charts?style=flat)
 [![License][license-shield]](https://github.com/rudizl/platinum-weather-card-plus-charts/blob/master/LICENSE)
