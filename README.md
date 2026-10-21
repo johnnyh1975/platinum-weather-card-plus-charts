@@ -4,13 +4,6 @@
 
 <h1 align="center">Platinum Weather Card Plus Charts</h1>
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/card-daily.png" alt="The card with the Daily tab open, and its Charts section" width="371">
-  &nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/card-hourly.png" alt="The same card with the Hourly tab open" width="436">
-</p>
-
-
 A mashup of [Platinum Weather Card](https://github.com/tommyjlong/platinum-weather-card) and [Weather Chart Card](https://github.com/mlamberts78/weather-chart-card) — two of the best weather cards for Home Assistant, neither of which has seen active development for a while. I used to run Weather Chart Card on my main dashboard and Platinum on a dedicated weather view. At some point it felt pointless to maintain two separate cards with overlapping functionality, so I merged them as far as makes sense.
 
 Based on the original Platinum Weather Card by [@makin-things](https://www.github.com/makin-things), extended by [@tommyjlong](https://github.com/tommyjlong). Weather Chart Card by [@mlamberts78](https://github.com/mlamberts78). Maintained and further developed here by me, [@rudizl](https://github.com/rudizl). If you like my work, you can <a href="https://buymeacoffee.com/rudizl"><img src="https://img.shields.io/badge/-Buy%20me%20a%20beer-FFDD00?style=flat&amp;logo=buymeacoffee&amp;logoColor=black" alt="Buy me a beer" align="absmiddle"></a> and/or [drop a star ⭐ on GitHub](https://github.com/rudizl/platinum-weather-card-plus-charts).
@@ -22,6 +15,12 @@ Based on the original Platinum Weather Card by [@makin-things](https://www.githu
 ![Last Commit](https://img.shields.io/github/last-commit/rudizl/platinum-weather-card-plus-charts?style=flat)
 [![License][license-shield]](https://github.com/rudizl/platinum-weather-card-plus-charts/blob/master/LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/rudizl/platinum-weather-card-plus-charts/build.yml?branch=master&style=flat&label=CI)](https://github.com/rudizl/platinum-weather-card-plus-charts/actions/workflows/build.yml)
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/card-daily.png" alt="The card with the Daily tab open, and its Charts section" width="371">
+  &nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/rudizl/platinum-weather-card-plus-charts/master/images/card-hourly.png" alt="The same card with the Hourly tab open" width="436">
+</p>
 
 ## Installation
 
