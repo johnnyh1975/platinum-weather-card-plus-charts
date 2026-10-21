@@ -13,7 +13,7 @@
 
 A mashup of [Platinum Weather Card](https://github.com/tommyjlong/platinum-weather-card) and [Weather Chart Card](https://github.com/mlamberts78/weather-chart-card) — two of the best weather cards for Home Assistant, neither of which has seen active development for a while. I used to run Weather Chart Card on my main dashboard and Platinum on a dedicated weather view. At some point it felt pointless to maintain two separate cards with overlapping functionality, so I merged them as far as makes sense.
 
-Based on the original Platinum Weather Card by [@makin-things](https://www.github.com/makin-things), extended by [@tommyjlong](https://github.com/tommyjlong). Weather Chart Card by [@mlamberts78](https://github.com/mlamberts78). Maintained and further developed here by [@rudizl](https://github.com/rudizl).
+Based on the original Platinum Weather Card by [@makin-things](https://www.github.com/makin-things), extended by [@tommyjlong](https://github.com/tommyjlong). Weather Chart Card by [@mlamberts78](https://github.com/mlamberts78). Maintained and further developed here by me, [@rudizl](https://github.com/rudizl). If you like my work, you can buy me a beer: [![Buy me a beer](https://img.shields.io/badge/buy%20me%20a-beer%20%F0%9F%8D%BA-orange?style=flat)](https://buymeacoffee.com/rudizl)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-blue.svg?style=flat)](https://github.com/hacs/default)
 [![GitHub Release][releases-shield]][releases]
