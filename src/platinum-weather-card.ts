@@ -24,6 +24,13 @@ import { tCard, tMoonPhase, tSager, tUnit, tWarning, tWindDirections, tZambretti
 import { zambrettiLetter, pressureToHpa, seaLevelPressure, windSpeedToKmh, tidalTrendHpaPerHour, cloudCoverFraction, cloudCoverOktas, sunElevation } from './zambretti';
 import { sagerForecast } from './sager';
 
+// The six keys the daily forecast strip reads each day from. For a weather entity
+// they are all that entity; for per-day sensors, each is the first of a numbered series.
+const FORECAST_DAY_KEYS = [
+  'entity_forecast_icon_1', 'entity_summary_1', 'entity_forecast_min_1',
+  'entity_forecast_max_1', 'entity_pop_1', 'entity_pos_1',
+] as const;
+
 
 /* eslint no-console: 0 */
 console.info(
@@ -103,6 +110,8 @@ export class PlatinumWeatherCard extends LitElement {
   private static _lastDaylightCloud: { t: number; f: number } | null = null;
   // When it last rained, so a gap between showers does not read as fine weather.
   private static _lastRain: { t: number; rate: number } | null = null;
+  // True when the six per-day keys were supplied from weather_entity, not set by the user.
+  private _forecastKeysImplied = false;
   // The last real gauge reading, for the icon: see _gaugeRateForIcon().
   private static _gaugeSeen: { entity: string; t: number; rate: number } | null = null;
 
@@ -199,12 +208,33 @@ export class PlatinumWeatherCard extends LitElement {
       forecast_type: 'daily',  // default if not provided
       ...config,
     };
+
+    // A weather_entity on its own is a complete instruction: the strip's six
+    // per-day keys can only ever be that entity when the data comes from it, and
+    // leaving them out gave an empty strip with nothing to say why (#24). So when
+    // the user has set none of them, they are the weather entity — in the card's
+    // own copy of the configuration, never written back. Any one of them set, to
+    // a sensor or to a weather entity, is a choice and nothing is filled in.
+    this._forecastKeysImplied = false;
+    const cfg = this._config as unknown as Record<string, unknown>;
+    if (cfg.weather_entity && !FORECAST_DAY_KEYS.some((k) => cfg[k])) {
+      for (const k of FORECAST_DAY_KEYS) cfg[k] = cfg.weather_entity;
+      this._forecastKeysImplied = true;
+    }
   }
 
 
   //tjl from bramkragten's weather-card 
   //  Change bramkragtent config check for "forecast" to "weather_entity"
   //  weather_entity is a new config. It is THE weather entity used to get forecast data
+  // The forecast type the strip and the charts read: what is configured, except that
+  // 'hourly' means daily here. Asking for one type and comparing what arrives with
+  // another would throw the forecast away.
+  private get _stripForecastType(): 'daily' | 'twice_daily' | undefined {
+    const type = this._config?.forecast_type;
+    return (type === 'hourly' ? 'daily' : type) as 'daily' | 'twice_daily' | undefined;
+  }
+
   _needForecastSubscription() {
     return (
       this._config &&
@@ -252,11 +282,16 @@ export class PlatinumWeatherCard extends LitElement {
     //  Note: forecast_type required to be set.
     //  Note: forecast_type daily supported by this card but not hourly nor twice_daily 
     if (!this.hass || !this._config) return;
+    // The strip takes one forecast entry for each day (two, day and night, for
+    // twice_daily), so hourly data — up to 24 entries a day — leaves it empty (#24).
+    // 'hourly' is still accepted in a stored configuration, and read as daily; the
+    // hours have a view and a subscription of their own, to entity_hourly.
+    const type = this._stripForecastType;
     this._subscribed = subscribeForecast(
       this.hass,
     //this._config.entity,
       this._config.weather_entity,
-      this._config.forecast_type as "daily" | "hourly" | "twice_daily",
+      type as "daily" | "twice_daily",
       (event) => {
         this._forecastEvent = event;
       }
@@ -457,6 +492,8 @@ export class PlatinumWeatherCard extends LitElement {
     this._error = [];
     Object.keys(this._config).forEach(entity => {
       if (entity.match(/^entity_/) !== null) {
+        // keys the card supplied itself are not the user's to be warned about
+        if (this._forecastKeysImplied && (FORECAST_DAY_KEYS as readonly string[]).includes(entity)) return;
         if (this.hass.states[this._config[entity]] === undefined) {
           this._error.push(`'${entity}=${this._config[entity]}' not found`);
         }
@@ -467,6 +504,7 @@ export class PlatinumWeatherCard extends LitElement {
     //tjl add a few more configs to check if they are weather entities.
     for (const entityName of ['entity_forecast_icon_1', 'entity_summary_1', 'entity_forecast_min_1', 'entity_forecast_max_1', 
       'entity_pop_1', 'entity_pos_1', 'entity_extended_1']) {
+      if (this._forecastKeysImplied && (FORECAST_DAY_KEYS as readonly string[]).includes(entityName)) continue;
       if (this._config[entityName] !== undefined) {
         // tjl - build warning - says "entity" never used, so for now comment it out
       //const entity = this.hass.states[this._config[entityName]];
@@ -542,7 +580,7 @@ export class PlatinumWeatherCard extends LitElement {
       if (this._config.weather_entity !== undefined ) {
         if ( this._config.forecast_type !== undefined ) {
           if ( !['daily','hourly','twice_daily'].includes(this._config.forecast_type)) {
-            this._error.push(`'forecast_type must be daily, hourly, or twice_daily`);
+            this._error.push(`'forecast_type must be daily or twice_daily`);
           }
         } else {  
             this._error.push(`'forecast_type needs to be configured.`);
@@ -1942,7 +1980,7 @@ export class PlatinumWeatherCard extends LitElement {
     const forecastData = getForecast(
    // WeatherObj.attributes,
       this._forecastEvent,
-      this._config?.forecast_type
+      this._stripForecastType
     );
 
     //tjl added/modified

@@ -518,7 +518,10 @@ get _weather_entity(): string {
   }
 
 get _forecast_type(): string {
-    return this._config?.forecast_type || '';
+    // The strip cannot use an hourly forecast (the hours have their own row), so a
+    // stored 'hourly' is shown as what the card reads it as, not as a blank.
+    const type = this._config?.forecast_type || '';
+    return type === 'hourly' ? 'daily' : type;
   }
 
 
@@ -1690,7 +1693,6 @@ get _forecast_type(): string {
       <select class='ha-select-compat' .configValue=${'forecast_type'} .value=${this._forecast_type} @change=${this._valueChanged}>
         <option value=""></option>
         <option value="daily">${this._t("opt_daily")}</option>
-        <option value="hourly">${this._t("opt_hourly")}</option>
         <option value="twice_daily">${this._t("opt_twice_daily")}</option>
       </select>
       <ha-entity-picker .hass=${this.hass} .configValue=${'entity_forecast_icon_1'} .value=${this._entity_forecast_icon_1} .includeDomains=${['sensor', 'weather']}

@@ -840,6 +840,13 @@ Hovering a column shows the full forecast for that day, including the precipitat
 
 Two layout options: **Horizontal** (default, up to 5 days) and **Vertical** (up to 7 days).
 
+**Where the days come from.** Either a weather entity or per-day sensors:
+
+- **A weather entity.** Set `weather_entity` and that is all there is to it. The six per-day settings in the table below (icon, summary, minimum, maximum, chance of rain, possible rain) are that entity, unless you set any of them yourself. Set one, to a sensor or to the weather entity, and the card fills in none of the others.
+- **Per-day sensors**, the way the original Platinum Weather Card was configured. Set `entity_forecast_icon_1` and its siblings to the first sensor of a numbered series, such as `sensor.forecast_icon_1`, and the card steps the number up for each day.
+
+`forecast_type` is `daily` (the default) or `twice_daily`. An `hourly` in an existing configuration is read as `daily`: the strip needs one forecast entry for each day, and the hours have a section of their own.
+
 The days can share the section with an hourly view, shown as a second tab or on its own. It has settings of its own, described under [Hourly Forecast Section](#hourly-forecast-section).
 
 Hovering over any forecast day column shows a tooltip with date, weather description, max/min temperatures, precipitation, and wind speed/direction. The tooltip content is identical to the Charts section tooltip.
@@ -847,7 +854,7 @@ Hovering over any forecast day column shows a tooltip with date, weather descrip
 | Option | Type | Description |
 | ------ | ---- | ----------- |
 | Weather Entity with Forecasts | String | Main weather entity for forecast data |
-| Forecast Type | String | `daily`, `hourly`, or `twice_daily` |
+| Forecast Type | String | `daily` or `twice_daily` (an existing `hourly` is read as `daily`) |
 | Entity Forecast Icon 1 | String | Entity for forecast condition icon |
 | Entity Forecast Summary 1 | String | Entity for forecast summary text (also used in hover tooltips) |
 | Entity Forecast Min 1 | String | Forecast minimum temperature |
@@ -1147,8 +1154,8 @@ Default slot values: l1=`forecast_max`, l2=`forecast_min`, l3=`wind`, l4=`pressu
 
 | Variable | Type | Default | Description |
 | -------- | ---- | ------- | ----------- |
-| `weather_entity` | String | — | Main weather entity for forecasts |
-| `forecast_type` | String | `daily` | `daily`, `hourly`, or `twice_daily` |
+| `weather_entity` | String | — | Main weather entity for forecasts. On its own it is enough: unless you set any of the six `entity_*_1` keys, they are this entity |
+| `forecast_type` | String | `daily` | `daily` or `twice_daily`. An existing `hourly` is read as `daily`: the strip needs one entry for each day |
 | `daily_forecast_layout` | String | `horizontal` | `horizontal` or `vertical` |
 | `daily_forecast_days` | Number | `5` | Days to show: 1–5 (horizontal), 1–7 (vertical) |
 | `option_tooltips` | Boolean | `false` | Enable hover tooltips on horizontal forecast columns |
