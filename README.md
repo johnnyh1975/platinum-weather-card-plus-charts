@@ -63,7 +63,11 @@ The two cards register under different names, so you can try this one beside the
 
 Three readings the card could not take from a weather entity now work: the **UV index**, the **dew point** (for the comfort word) and the **cloud cover**. A weather entity's own **visibility unit** is used, where the card used to assume the system's.
 
-**Adding the card from the picker now works, both ways in.** In *Add to dashboard*, pick a weather entity under *By entity* and the card is offered under *Community* (Home Assistant 2026.6 and later), set up for the entity you picked: the overview, the slots, the days and the charts, all from that entity. Where the entity can also do hourly forecasts there are two variants, *Daily forecast and charts* and *Daily and hourly forecast*. An entity that cannot do daily forecasts is not offered the card, because the days and the charts would be empty; and nothing is offered for anything that is not a weather entity. Under *By card* the card has a live preview, filled in with one of your weather entities, one that can do days if there is one. Before, a new card came out empty and every field had to be filled in by hand, and it was never offered by entity at all. With no weather entity it is still left empty for the editor.
+**A card written in YAML without `section_order` now draws its sections** (#27, from @johnnyh1975). The README documents a default order, but the card never applied one: only the editor wrote it, so a card written by hand drew an empty frame with no warning. The default is warnings, overview, extended, slots, daily forecast and charts, in the card's own copy of the configuration and never written back; an order you give, even a shortened one, is left alone.
+
+**Old slot names are renamed again** (#28, from @johnnyh1975). The editor's clean-up renames the pre-2022 slot values `daytime_high` and `daytime_low`, but its loop ran over one string holding all sixteen slot names, so nothing was ever renamed and old configurations kept a value no slot matches.
+
+**Adding the card from the picker now works, both ways in.** In *Add to dashboard*, pick a weather entity under *By entity* and the card is offered under *Community* (Home Assistant 2026.6 and later), set up for the entity you picked: the overview, the slots, the days and the charts, all from that entity. Where the entity can also do hourly forecasts there are two variants, *Daily forecast and charts* and *Daily and hourly forecast*. An entity that cannot do daily forecasts is not offered the card, because the days and the charts would be empty; and nothing is offered for anything that is not a weather entity. Under *By card* the card has a live preview, filled in with one of your weather entities, one that can do days if there is one. Before, a new card came out empty and every field had to be filled in by hand, and it was never offered by entity at all. With no weather entity there is nothing to fill in, and the card shows its sections without data until it is set up.
 
 **Hours combined in a step, as a choice.** `hourly_forecast_step` thins the hours by taking every nth one, and the rain that falls in the hours it skips is not shown at all. A new switch, off by default so that nothing existing changes, combines the hours in each step instead: the rain is added up, the wind is the strongest, the weather is the worst of them, and the time and the temperature stay those of the hour the step starts on.
 
@@ -71,7 +75,7 @@ Three readings the card could not take from a weather entity now work: the **UV 
 
 **The icon stops flickering in light rain, and at the top of the hour.** The piezo gauge reports in steps of 0.6 mm/h: in a light shower it reads 0.6 for ten minutes and 0.0 between the ticks, and on 19 October, between 20:33 and 23:48, five bursts separated by gaps of two and five minutes and one lull of a hundred made the icon change about ten times. A reading above zero now counts as rain for fifteen minutes, which bridges the gaps and still lets go in a lull. And a weather entity that drops out for a moment, as `weather.ivarna103` does for a fraction of a second at the top of every hour, keeps its last condition for ten seconds instead of flashing a different icon.
 
-Forty-nine new tests run the card itself, and each way the picker finds the card is among them. They guard what must not change too: a user's own sensors, a weather entity that is not there, a provider without a feels-like or gusts, an entity that does not say what it can do, the hours as they were when the switch is off, and a gauge that has read 0.0 all along, which is dry at once.
+Fifty-six new tests run the card itself, seven of them from @johnnyh1975's pull requests, and each way the picker finds the card is among them. They guard what must not change too: a user's own sensors, a weather entity that is not there, a provider without a feels-like or gusts, an entity that does not say what it can do, the hours as they were when the switch is off, and a gauge that has read 0.0 all along, which is dry at once.
 
 ---
 
@@ -1045,7 +1049,7 @@ Almost all settings can be configured in the GUI editor. The YAML reference belo
 | -------- | ---- | ------- | ----------- |
 | `type` | String | — | Must be `custom:platinum-weather-card-plus-charts` |
 | `card_config_version` | Number | — | Written by the editor to record the configuration format it has already migrated. Leave it as it is |
-| `section_order` | List | overview, extended, slots, daily_forecast, charts | Section display order |
+| `section_order` | List | warnings, overview, extended, slots, daily_forecast, charts | Section display order. Left out, this is the order, in the card's own copy of the configuration |
 | `show_section_overview` | Boolean | `true` | Show/hide overview section |
 | `show_section_extended` | Boolean | `true` | Show/hide extended section |
 | `show_section_slots` | Boolean | `true` | Show/hide slots section |
