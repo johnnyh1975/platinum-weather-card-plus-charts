@@ -55,6 +55,41 @@ const CURRENT_KEY_ATTRS: ReadonlyArray<readonly [string, string | null]> = [
   ['entity_dew_point', 'dew_point'],
 ];
 
+// Sensors that belong to the same device as weather_entity and can be matched
+// to a reading. Integrations such as DWD (FL550), Met.no or Pirate Weather put a
+// station's sensors on the weather entity's device, and give each a stable
+// translation_key that does not change with the language the entity ids were
+// created in — sensor.nuernberg_taupunkt is translation_key "dewpoint". That
+// key is tried first; device_class plus a few words in the entity id or name
+// only when no key matches. A reading is assigned only when exactly one sensor
+// fits, so the card never guesses between two.
+//
+// Left out on purpose: rain rate and solar radiation. The card treats those as
+// a gauge and a pyranometer — they correct the icon and feed the local
+// forecast — and a provider's sensors of the same name are forecasts.
+interface SensorRole {
+  key: string;
+  keys: string[];
+  deviceClass?: string[];
+  words?: RegExp;
+  notWords?: RegExp;
+}
+const SENSOR_ROLES: SensorRole[] = [
+  { key: 'entity_temperature', keys: ['temperature', 'air_temperature'], deviceClass: ['temperature'],
+    notWords: /dew|tau|apparent|feel|gef(ue|u|ü)hl|chill|heat|min|max|soil|boden|water|wasser|indoor|innen/ },
+  { key: 'entity_apparent_temp', keys: ['apparent_temperature', 'feels_like_temperature', 'feels_like', 'real_feel_temperature'],
+    deviceClass: ['temperature'], words: /apparent|feel|gef(ue|u|ü)hl/ },
+  { key: 'entity_dew_point', keys: ['dewpoint', 'dew_point'], deviceClass: ['temperature'], words: /dew|taupunkt/ },
+  { key: 'entity_humidity', keys: ['humidity', 'relative_humidity'], deviceClass: ['humidity'], notWords: /absol/ },
+  { key: 'entity_pressure', keys: ['pressure', 'sea_level_pressure', 'air_pressure'], deviceClass: ['pressure', 'atmospheric_pressure'] },
+  { key: 'entity_wind_speed', keys: ['wind_speed'], deviceClass: ['wind_speed'], notWords: /gust|b(oe|ö|o)en/ },
+  { key: 'entity_wind_bearing', keys: ['wind_direction', 'wind_bearing'], deviceClass: ['wind_direction'] },
+  { key: 'entity_wind_gust', keys: ['wind_gusts', 'wind_gust', 'wind_gust_speed'], deviceClass: ['wind_speed'], words: /gust|b(oe|ö|o)en/ },
+  { key: 'entity_visibility', keys: ['visibility'], deviceClass: ['distance'], words: /visib|sicht/ },
+  { key: 'entity_uv_index', keys: ['uv_index', 'uv'], words: /(^|[._])uv([._]|$)|uv_index/ },
+  { key: 'entity_cloud_cover', keys: ['cloud_coverage', 'cloud_cover', 'cloudiness'], words: /cloud|bew(oe|o|ö)lk/ },
+];
+
 
 /* eslint no-console: 0 */
 console.info(
@@ -140,6 +175,10 @@ export class PlatinumWeatherCard extends LitElement {
   // keys the card has filled in from weather_entity on top of it.
   private _userConfig: Record<string, unknown> = {};
   private _impliedKeys = new Set<string>();
+  // Keys filled from a sensor on the weather entity's device, and the sensor
+  // list for that device, rebuilt only when the registry or the entity changes.
+  private _discoveredKeys = new Set<string>();
+  private _siblingCache?: { registry: unknown; weather: string; ids: string[] };
   // The last real gauge reading, for the icon: see _gaugeRateForIcon().
   private static _gaugeSeen: { entity: string; t: number; rate: number } | null = null;
 
@@ -233,6 +272,7 @@ export class PlatinumWeatherCard extends LitElement {
 
     this._userConfig = { ...config } as Record<string, unknown>;
     this._impliedKeys = new Set();
+    this._discoveredKeys = new Set();
     this._config = {
       name: 'Weather',
       forecast_type: 'daily',  // default if not provided
@@ -2020,10 +2060,67 @@ export class PlatinumWeatherCard extends LitElement {
         this._impliedKeys.delete(key);
       }
     }
+    if (this._config.option_discover_sensors !== false) this._applyDeviceSensors();
     // sun.sun is the one sun entity Home Assistant has; there is nothing to choose.
     if (!this._userConfig.entity_sun && this.hass.states['sun.sun']) {
       cfg.entity_sun = 'sun.sun';
       this._impliedKeys.add('entity_sun');
+    }
+  }
+
+  // The enabled sensors on the same device as weather_entity. hass.entities is
+  // the frontend's entity registry: absent on old Home Assistant versions, in
+  // which case there is simply nothing to discover.
+  private _siblingSensors(): string[] {
+    const weather = this._config.weather_entity;
+    const registry = (this.hass as unknown as { entities?: Record<string, { device_id?: string; entity_category?: string | null }> }).entities;
+    if (!weather || !registry) return [];
+    const cache = this._siblingCache;
+    if (cache && cache.registry === registry && cache.weather === weather) return cache.ids;
+    const device = registry[weather]?.device_id;
+    const ids = !device ? [] : Object.keys(registry).filter((id) =>
+      id.startsWith('sensor.') && registry[id].device_id === device && !registry[id].entity_category);
+    this._siblingCache = { registry, weather, ids };
+    return ids;
+  }
+
+  private _matchSensor(role: SensorRole, ids: string[]): string | undefined {
+    const registry = (this.hass as unknown as { entities?: Record<string, { translation_key?: string }> }).entities ?? {};
+    const byKey = ids.filter((id) => role.keys.includes(registry[id]?.translation_key ?? ''));
+    if (byKey.length === 1) return byKey[0];
+    if (byKey.length > 1) return undefined;
+    const text = (id: string) => `${id} ${this.hass.states[id]?.attributes?.friendly_name ?? ''}`.toLowerCase();
+    const candidates = ids.filter((id) => {
+      const st = this.hass.states[id];
+      if (!st) return false;
+      const dc = st.attributes?.device_class as string | undefined;
+      if (role.deviceClass && !(dc && role.deviceClass.includes(dc))) return false;
+      if (role.words && !role.words.test(text(id))) return false;
+      if (role.notWords && role.notWords.test(text(id))) return false;
+      return true;
+    });
+    return candidates.length === 1 ? candidates[0] : undefined;
+  }
+
+  // Fill what the weather entity could not, from sensors on its device. Runs
+  // after the attribute defaults, so the order is: the user's choice, then the
+  // weather entity's own attribute, then a sensor of the same station.
+  private _applyDeviceSensors(): void {
+    const cfg = this._config as unknown as Record<string, unknown>;
+    const ids = this._siblingSensors();
+    for (const role of SENSOR_ROLES) {
+      const key = role.key;
+      if (this._userConfig[key]) continue;
+      if (this._impliedKeys.has(key)) { this._discoveredKeys.delete(key); continue; }
+      if (cfg[key] && !this._discoveredKeys.has(key)) continue;
+      const found = ids.length ? this._matchSensor(role, ids) : undefined;
+      if (found) {
+        cfg[key] = found;
+        this._discoveredKeys.add(key);
+      } else if (this._discoveredKeys.has(key)) {
+        delete cfg[key];
+        this._discoveredKeys.delete(key);
+      }
     }
   }
 

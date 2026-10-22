@@ -138,6 +138,7 @@ export interface WeatherCardConfig extends LovelaceCardConfig {
   option_local_forecast_verbose?: boolean;
   option_daily_forecast_date?: boolean;
   option_slot_tap_more_info?: boolean;
+  option_discover_sensors?: boolean;
   option_moon_icon_only?: boolean;
   option_sun_overrides_icon?: boolean;
   option_trend_window_hours?: number;

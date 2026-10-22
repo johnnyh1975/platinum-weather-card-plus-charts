@@ -451,6 +451,10 @@ Only what the entity actually reports is filled in. A provider without `apparent
 
 Set any of these keys yourself — to a sensor from your own station, say — and that choice wins for that reading alone; the rest still come from the weather entity.
 
+**Sensors of the same station.** Where the weather entity does not carry a reading, the card looks at the sensors on the weather entity's device. Integrations such as Deutscher Wetterdienst (FL550) create a station's sensors on that device, and each has a fixed key that does not depend on the language its entity id was created in — `sensor.nuernberg_taupunkt` is the dew point whatever it is called. Dew point, feels-like, gusts, cloud cover and the rest are picked up that way, provided the sensor is enabled. Without such a key the card goes by device class and the sensor's name, and assigns a reading only when exactly one sensor fits; two candidates and it leaves the reading alone rather than guess.
+
+The order is always: what you set, then the weather entity's own attribute, then a sensor of the same station. Rain rate and solar radiation are never filled in this way: the card treats those as a rain gauge and a pyranometer — they correct the icon and feed the local forecast — and a provider's sensors of those names are forecasts. `option_discover_sensors: false` turns the lookup off.
+
 # Sections
 
 <p align="center">
@@ -1164,6 +1168,7 @@ double_tap_action:
 | `option_cloud_cover_oktas` | Boolean | `false` | Show oktas instead of a percentage |
 | `option_cloud_overrides_icon` | Boolean | `false` | Let the measured cloud cover and rain rate correct the condition icon |
 | `option_slot_tap_more_info` | Boolean | `true` | Tap on a slot value opens the more-info history dialog |
+| `option_discover_sensors` | Boolean | `true` | Fill readings the weather entity lacks from sensors on its device (dew point, gusts, cloud cover …). Never rain rate or solar radiation |
 | `entity_warning` | String | none | MeteoAlarm-compatible binary sensor for the warnings section |
 | `entity_lightning_distance` | String | none | Strike detector distance sensor — adds its own warning row |
 | `entity_lightning_azimuth` | String | none | Strike detector bearing sensor, for the direction |
