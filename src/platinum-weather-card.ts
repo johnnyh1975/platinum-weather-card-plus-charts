@@ -20,6 +20,7 @@ import type { timeFormat, WeatherCardConfig, HassFormatEntityState } from './typ
 import { ForecastEvent, subscribeForecast, getForecast, ForecastAttribute } from './weather';
 
 import { CARD_VERSION } from './const';
+import { sectionNames } from './types';
 import { tCard, tMoonPhase, tSager, tUnit, tWarning, tWindDirections, tZambretti } from './translations';
 import { zambrettiLetter, pressureToHpa, seaLevelPressure, windSpeedToKmh, tidalTrendHpaPerHour, cloudCoverFraction, cloudCoverOktas, sunElevation } from './zambretti';
 import { sagerForecast } from './sager';
@@ -64,8 +65,27 @@ export class PlatinumWeatherCard extends LitElement {
     return document.createElement('platinum-weather-card-plus-charts-editor') as LovelaceCardEditor;
   }
 
-  public static getStubConfig(): Record<string, unknown> {
-    return {};
+  // What the card picker inserts. An empty object gave a blank card until the
+  // editor was opened; pick a weather entity the way the built-in weather card
+  // does, so the card shows something the moment it is added.
+  public static getStubConfig(hass?: HomeAssistant, unusedEntities: string[] = [], allEntities: string[] = []): Record<string, unknown> {
+    const isWeather = (e: string) => e.split('.')[0] === 'weather';
+    const weather = unusedEntities.find(isWeather)
+      ?? allEntities.find(isWeather)
+      ?? Object.keys(hass?.states ?? {}).find(isWeather);
+    const stub: Record<string, unknown> = { section_order: [...sectionNames] };
+    if (!weather) return stub;
+    return {
+      ...stub,
+      weather_entity: weather,
+      forecast_type: 'daily',
+      entity_temperature: weather,
+      entity_forecast_icon: weather,
+      show_section_extended: false,
+      show_section_charts: true,
+      option_show_temperature_chart: true,
+      option_show_precipitation_chart: true,
+    };
   }
 
   //tjl copied from HA front-end.  Supports subscribing to weather forecast events.
