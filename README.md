@@ -69,7 +69,9 @@ Three readings the card could not take from a weather entity now work: the **UV 
 
 **The card knows its size in the sections view.** It tells Home Assistant it takes all twelve columns, as it always has there, that its height follows its content, and that it should not be dragged narrower than six columns, where it is unreadable.
 
-Forty-one new tests run the card itself, and each way the picker finds the card is among them. They guard what must not change too: a user's own sensors, a weather entity that is not there, a provider without a feels-like or gusts, an entity that does not say what it can do, and the hours as they were when the switch is off.
+**The icon stops flickering in light rain, and at the top of the hour.** The piezo gauge reports in steps of 0.6 mm/h: in a light shower it reads 0.6 for ten minutes and 0.0 between the ticks, and on 19 October, between 20:33 and 23:48, five bursts separated by gaps of two and five minutes and one lull of a hundred made the icon change about ten times. A reading above zero now counts as rain for fifteen minutes, which bridges the gaps and still lets go in a lull. And a weather entity that drops out for a moment, as `weather.ivarna103` does for a fraction of a second at the top of every hour, keeps its last condition for ten seconds instead of flashing a different icon.
+
+Forty-nine new tests run the card itself, and each way the picker finds the card is among them. They guard what must not change too: a user's own sensors, a weather entity that is not there, a provider without a feels-like or gusts, an entity that does not say what it can do, the hours as they were when the switch is off, and a gauge that has read 0.0 all along, which is dry at once.
 
 ---
 
@@ -808,7 +810,9 @@ Worth knowing about its limits:
 - **The clear-sky model uses a fixed atmospheric transmittance**, so it reads a little high in hazy or dusty air and a little low in very clean air. Good enough to tell clear from overcast; not a radiometric instrument.
 - **The sensor must be clean, level and unshaded.** A pyranometer that catches a roof edge each morning will report cloud that isn't there, every morning.
 
-If your station has a rain gauge, point **Rain rate entity** at it too (mm/h). A gauge sees what neither a forecast provider nor a pyranometer can — whether it is raining here, now — and it takes precedence over both: rain reported by the gauge replaces a clear or cloudy icon, with the intensity following the rate. It is not smoothed the way cloud cover is, because rain starting is an event rather than a state to average. The one exception is a gauge that drops out for a few seconds, as some stations do now and then: the icon holds its last reading for a minute, so the correction does not flicker, while the rain rate slot goes on showing the truth.
+If your station has a rain gauge, point **Rain rate entity** at it too (mm/h). A gauge sees what neither a forecast provider nor a pyranometer can — whether it is raining here, now — and it takes precedence over both: rain reported by the gauge replaces a clear or cloudy icon, with the intensity following the rate. Rain starting is shown at once, because it is an event rather than a state to average; what is held is its end. A reading above zero counts as rain for fifteen minutes. Gauges that report in steps, such as the Ecowitt piezo gauge, which reads 0.6 mm/h, show light rain as short ticks with 0.0 between them, so a 0.0 does not prove that it has stopped, and without the hold the icon changed with every gap: about ten times in three hours on one evening of light showers. A gap of a few minutes is bridged; a lull of an hour is not. A gauge that drops out for a few seconds, as some stations do now and then, is held at its last reading for a minute. The rain rate slot goes on showing the truth throughout.
+
+A weather entity that drops out for a moment, as some providers do at a fixed time every hour, keeps its last condition for ten seconds, so the icon does not flash.
 
 The measurement can also correct the condition icon, under **Measurement corrects the icon**. The icon then follows the ordinary cloud bands — clear below 25%, lightly cloudy to 55%, cloudy to 85%, overcast above — rather than the provider's guess.
 

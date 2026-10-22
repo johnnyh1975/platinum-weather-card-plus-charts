@@ -184,6 +184,10 @@ export class PlatinumWeatherCard extends LitElement {
   private _impliedKeys = new Set<string>();
   // The last real gauge reading, for the icon: see _gaugeRateForIcon().
   private static _gaugeSeen: { entity: string; t: number; rate: number } | null = null;
+  // The last time the gauge read above zero, and what it read; see _gaugeRateForIcon().
+  private static _gaugeRain: { entity: string; t: number; rate: number } | null = null;
+  // The last real condition of the weather entity behind the icon; see forecastIcon.
+  private static _lastCondition: { entity: string; t: number; state: string } | null = null;
 
   private _error: string[] = [];
 
@@ -3257,6 +3261,13 @@ export class PlatinumWeatherCard extends LitElement {
   // provider's rain for as long as it lasted. Only the icon holds on — the
   // slot goes on showing the truth — and only for a minute, so a gauge that has
   // really died cannot go on overruling for ever.
+  //
+  // A tick counts as rain for fifteen minutes. The piezo gauge reports in steps of
+  // 0.6 mm/h, so in a light shower it reads 0.6 for ten minutes and 0.0 between the
+  // ticks, and a reading of 0.0 does not mean it has stopped. On 19 October, between
+  // 20:33 and 23:48, five bursts were separated by gaps of two and five minutes and
+  // one lull of a hundred; taken at face value the icon changed about ten times.
+  // Fifteen minutes bridges the gaps and still lets go in a lull.
   private _gaugeRateForIcon(): number | null {
     const entity = this._config?.entity_rain_rate;
     const live = this.measuredRainRate;
@@ -3264,6 +3275,12 @@ export class PlatinumWeatherCard extends LitElement {
     const now = Date.now();
     if (live !== null && entity) {
       cls._gaugeSeen = { entity, t: now, rate: live };
+      if (live > 0) {
+        cls._gaugeRain = { entity, t: now, rate: live };
+        return live;
+      }
+      const rain = cls._gaugeRain;
+      if (rain && rain.entity === entity && now - rain.t <= 900000) return rain.rate;
       return live;
     }
     const seen = cls._gaugeSeen;
@@ -3511,9 +3528,20 @@ export class PlatinumWeatherCard extends LitElement {
   // getters that return the value to be shown
   get forecastIcon(): string {
     const entity = this._config.entity_forecast_icon;
-    return entity && this.hass.states[entity]
-      ? this.hass.states[entity].state
-      : '---';
+    if (!entity || !this.hass.states[entity]) return '---';
+    const state = this.hass.states[entity].state;
+    const cls = this.constructor as typeof PlatinumWeatherCard;
+    const now = Date.now();
+    // Some providers drop out for a moment at a fixed time: weather.ivarna103 goes
+    // 'unavailable' for 0.2 to 0.5 seconds at the top of every hour. The last real
+    // condition is held for ten seconds, so the icon does not flash N/A; a provider
+    // that has really gone is shown as gone after that.
+    if (state === 'unavailable' || state === 'unknown') {
+      const last = cls._lastCondition;
+      return last && last.entity === entity && now - last.t <= 10000 ? last.state : state;
+    }
+    cls._lastCondition = { entity, t: now, state };
+    return state;
   }
 
   get currentTemperature(): string {
