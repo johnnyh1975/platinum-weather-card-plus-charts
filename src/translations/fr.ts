@@ -133,6 +133,8 @@ const fr: Translation = {
     "hourly_shade_night_hint": "Calculé d'après la position du soleil, pas lu d'un capteur",
     "hourly_shade_night": "Assombrir les heures de nuit",
     "hourly_forecast_step_hint": "Une heure sur n — 3 transforme 24 heures en huit colonnes",
+    "hourly_group": "Regrouper les heures d'un pas",
+    "hourly_group_hint": "La pluie est additionnée, le vent le plus fort et le pire temps l'emportent. Désactivé : une heure sur n est retenue",
     "hourly_forecast_step": "Pas (heures)",
     "hourly_mode_hint": "Avec les deux, des onglets permettent de basculer",
     "hourly_mode_both": "Les deux, avec onglets",

@@ -35,6 +35,14 @@ const MEASUREMENT_KEYS = [
   'entity_forecast_min', 'entity_forecast_max', 'entity_pop', 'entity_pos',
 ] as const;
 
+// From the mildest weather to the worst, for choosing the one that stands for a
+// group of hours: a three-hour column that had rain in it should not show the
+// sunny hour it happens to start on.
+const WEATHER_SEVERITY = [
+  'clear-night', 'sunny', 'partlycloudy', 'cloudy', 'fog', 'windy-variant', 'windy',
+  'hail', 'snowy', 'snowy-rainy', 'rainy', 'pouring', 'lightning', 'lightning-rainy', 'exceptional',
+] as const;
+
 // The six keys the daily forecast strip reads each day from. For a weather entity
 // they are all that entity; for per-day sensors, each is the first of a numbered series.
 const FORECAST_DAY_KEYS = [
@@ -183,6 +191,13 @@ export class PlatinumWeatherCard extends LitElement {
   //  forecast1 is THE entity to subscribe for weather forecast events
   private forecast1!: ForecastAttribute[] | undefined;
   private hassExtended!: HassFormatEntityState;
+
+  // The sections view: the width the card has always had there (all twelve columns, which
+  // is what a card that says nothing gets), rows that follow the content, and a floor
+  // under the width, so that it cannot be dragged down to something unreadable.
+  public getGridOptions() {
+    return { columns: 12, rows: 'auto', min_columns: 6 };
+  }
 
   public getCardSize(): number {
 
@@ -407,7 +422,35 @@ export class PlatinumWeatherCard extends LitElement {
     // hour you are standing in.
     const step = Number(this._config?.hourly_forecast_step);
     if (!isFinite(step) || step <= 1) return window;
-    return window.filter((_, i) => i % Math.round(step) === 0);
+    const n = Math.round(step);
+    // Taking every nth hour loses what happens in the others: three-hourly, the rain
+    // that falls in the two skipped hours is not shown at all. Grouping them keeps it,
+    // and is a choice because it changes what an existing step shows.
+    if (this._config?.option_hourly_group !== true) return window.filter((_, i) => i % n === 0);
+    const groups: ForecastAttribute[] = [];
+    for (let i = 0; i < window.length; i += n) groups.push(PlatinumWeatherCard._mergeHours(window.slice(i, i + n)));
+    return groups;
+  }
+
+  // One entry standing for a run of hours. It keeps the time and the temperature of
+  // the hour it starts on; the rain is added up, the wind takes the strongest, and the
+  // weather is the worst of the group. Whatever the provider does not give stays absent.
+  private static _mergeHours(group: ForecastAttribute[]): ForecastAttribute {
+    if (group.length === 1) return group[0];
+    const numbers = (pick: (f: ForecastAttribute) => unknown): number[] =>
+      group.map((f) => { const v = pick(f); return v === undefined || v === null || v === '' ? NaN : Number(v); }).filter((v) => isFinite(v));
+    const rain = numbers((f) => f.precipitation);
+    const chance = numbers((f) => f.precipitation_probability);
+    const wind = numbers((f) => f.wind_speed);
+    const rank = (c?: string): number => Math.max(WEATHER_SEVERITY.indexOf(c as never), 0);
+    const worst = group.reduce((a, b) => (rank(b.condition) > rank(a.condition) ? b : a));
+    return {
+      ...group[0],
+      ...(worst.condition !== undefined ? { condition: worst.condition } : {}),
+      ...(rain.length ? { precipitation: rain.reduce((a, b) => a + b, 0) } : {}),
+      ...(chance.length ? { precipitation_probability: Math.max(...chance) } : {}),
+      ...(wind.length ? { wind_speed: String(Math.max(...wind)) } : {}),
+    };
   }
 
   //tjl from bramkragten's weather-card

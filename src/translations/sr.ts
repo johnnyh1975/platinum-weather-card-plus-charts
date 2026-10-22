@@ -133,6 +133,8 @@ const sr: Translation = {
     "hourly_shade_night_hint": "Израчунава се по положају сунца, не чита се са сензора",
     "hourly_shade_night": "Затамни ноћне сате",
     "hourly_forecast_step_hint": "Узима сваки n-ти сат — 3 претвара 24 сата у осам колона",
+    "hourly_group": "Обједини сате у кораку",
+    "hourly_group_hint": "Падавине се сабирају, а најјачи ветар и најгоре време односе превагу. Искључено: узима се сваки n-ти сат",
     "hourly_forecast_step": "Корак (сати)",
     "hourly_mode_hint": "Код обе се пребацује картицама",
     "hourly_mode_both": "Обе, са картицама",

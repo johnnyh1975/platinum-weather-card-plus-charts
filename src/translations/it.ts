@@ -133,6 +133,8 @@ const it: Translation = {
     "hourly_shade_night_hint": "Calcolato dalla posizione del sole, non letto da un sensore",
     "hourly_shade_night": "Ombreggia le ore notturne",
     "hourly_forecast_step_hint": "Un'ora ogni n — 3 trasforma 24 ore in otto colonne",
+    "hourly_group": "Combina le ore di un passo",
+    "hourly_group_hint": "La pioggia viene sommata e prevalgono il vento più forte e il tempo peggiore. Disattivato: si prende un'ora ogni n",
     "hourly_forecast_step": "Passo (ore)",
     "hourly_mode_hint": "Con entrambe, delle schede permettono di passare",
     "hourly_mode_both": "Entrambe, con schede",

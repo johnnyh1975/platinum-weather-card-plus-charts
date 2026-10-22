@@ -133,6 +133,8 @@ const he: Translation = {
     "hourly_shade_night_hint": "מחושב לפי מיקום השמש, לא נקרא מחיישן",
     "hourly_shade_night": "הצללת שעות הלילה",
     "hourly_forecast_step_hint": "כל שעה n — 3 הופך 24 שעות לשמונה עמודות",
+    "hourly_group": "שלב את השעות בכל צעד",
+    "hourly_group_hint": "הגשם מסוכם, והרוח החזקה ביותר ומזג האוויר הגרוע ביותר גוברים. כבוי: נלקחת כל שעה n",
     "hourly_forecast_step": "צעד (שעות)",
     "hourly_mode_hint": "עם שתיהן, לשוניות מאפשרות מעבר",
     "hourly_mode_both": "שתיהן, עם לשוניות",

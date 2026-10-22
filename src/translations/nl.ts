@@ -133,6 +133,8 @@ const nl: Translation = {
     "hourly_shade_night_hint": "Berekend uit de zonnestand, niet uit een sensor",
     "hourly_shade_night": "Nachturen arceren",
     "hourly_forecast_step_hint": "Elk n-de uur — 3 maakt van 24 uur acht kolommen",
+    "hourly_group": "Uren in een stap samenvoegen",
+    "hourly_group_hint": "Neerslag wordt opgeteld, de sterkste wind en het slechtste weer winnen. Uit: elk n-de uur wordt genomen",
     "hourly_forecast_step": "Stap (uren)",
     "hourly_mode_hint": "Bij beide schakel je met tabs",
     "hourly_mode_both": "Beide, met tabs",

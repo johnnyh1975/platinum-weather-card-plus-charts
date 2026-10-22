@@ -133,6 +133,8 @@ const pl: Translation = {
     "hourly_shade_night_hint": "Obliczone z położenia słońca, nie z czujnika",
     "hourly_shade_night": "Przyciemnij godziny nocne",
     "hourly_forecast_step_hint": "Co n-ta godzina — 3 zamienia 24 godziny w osiem kolumn",
+    "hourly_group": "Połącz godziny w kroku",
+    "hourly_group_hint": "Opady są sumowane, a najsilniejszy wiatr i najgorsza pogoda wygrywają. Wyłączone: brana jest co n-ta godzina",
     "hourly_forecast_step": "Krok (godziny)",
     "hourly_mode_hint": "Przy obu przełączasz zakładkami",
     "hourly_mode_both": "Obie, z zakładkami",

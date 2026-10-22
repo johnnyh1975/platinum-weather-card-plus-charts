@@ -65,7 +65,11 @@ Three readings the card could not take from a weather entity now work: the **UV 
 
 **Adding the card from the picker now works, both ways in.** In *Add to dashboard*, pick a weather entity under *By entity* and the card is offered under *Community* (Home Assistant 2026.6 and later), set up for the entity you picked: the overview, the slots, the days and the charts, all from that entity. Where the entity can also do hourly forecasts there are two variants, *Daily forecast and charts* and *Daily and hourly forecast*. An entity that cannot do daily forecasts is not offered the card, because the days and the charts would be empty; and nothing is offered for anything that is not a weather entity. Under *By card* the card has a live preview, filled in with one of your weather entities, one that can do days if there is one. Before, a new card came out empty and every field had to be filled in by hand, and it was never offered by entity at all. With no weather entity it is still left empty for the editor.
 
-Thirty new tests run the card itself, and each way the picker finds the card is among them. They guard what must not change too: a user's own sensors, a weather entity that is not there, a provider without a feels-like or gusts, and an entity that does not say what it can do.
+**Hours combined in a step, as a choice.** `hourly_forecast_step` thins the hours by taking every nth one, and the rain that falls in the hours it skips is not shown at all. A new switch, off by default so that nothing existing changes, combines the hours in each step instead: the rain is added up, the wind is the strongest, the weather is the worst of them, and the time and the temperature stay those of the hour the step starts on.
+
+**The card knows its size in the sections view.** It tells Home Assistant it takes all twelve columns, as it always has there, that its height follows its content, and that it should not be dragged narrower than six columns, where it is unreadable.
+
+Forty-one new tests run the card itself, and each way the picker finds the card is among them. They guard what must not change too: a user's own sensors, a weather entity that is not there, a provider without a feels-like or gusts, an entity that does not say what it can do, and the hours as they were when the switch is off.
 
 ---
 
@@ -941,6 +945,7 @@ Opened with the settings button on the **Hourly forecast** row:
 | Hourly weather entity | `entity_hourly` | none | The weather entity the hours come from |
 | Hours to show | `hourly_forecast_hours` | `12` | 1 to 48; anything above 48 is capped at 48 |
 | Step (hours) | `hourly_forecast_step` | `1` | Take every nth hour. The span is cut first and then thinned, so 24 hours at a step of 3 is eight columns and 48 hours is sixteen. The first column is always kept, since it is the hour you are standing in |
+| Combine the hours in a step | `option_hourly_group` | off | With a step above 1, the hours in each step are combined instead of every nth one being taken: the rain is added up, the wind is the strongest, the weather is the worst of them, and the time and the temperature are those of the hour the step starts on. Without it, the rain that falls in the hours that are skipped is not shown |
 | Shade the night hours | `option_hourly_shade_night` | on | A faint wash behind the hours the sun is down, so it is obvious where the day ends |
 | Show rainfall | `option_hourly_precipitation` | on | A figure under the hours expecting some; the row vanishes when the whole span is dry, rather than printing a column of zeroes |
 | Show wind | `option_hourly_wind` | off | Speed under each hour, in the unit the hourly entity reports |
@@ -1219,6 +1224,7 @@ Default slot values: l1=`forecast_max`, l2=`forecast_min`, l3=`wind`, l4=`pressu
 | `entity_hourly` | String | none | Weather entity whose provider publishes hourly forecasts |
 | `hourly_forecast_hours` | Number | `12` | Hours to show, 1 to 48 |
 | `hourly_forecast_step` | Number | `1` | Take every nth hour — 24 hours at 3 is eight columns |
+| `option_hourly_group` | Boolean | `false` | Combine the hours in each `hourly_forecast_step` (rain added up, strongest wind, worst weather) instead of taking every nth hour |
 | `option_hourly_shade_night` | Boolean | `true` | Shade the hours the sun is down; calculated from `latitude`/`longitude`, not read from a sensor |
 | `option_hourly_precipitation` | Boolean | `true` | Rainfall under the hours expecting some |
 | `option_hourly_wind` | Boolean | `false` | Wind speed under each hour, in the hourly entity's unit |

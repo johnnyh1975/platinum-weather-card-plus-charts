@@ -133,6 +133,8 @@ const en: Translation = {
     "hourly_shade_night_hint": "Worked out from the sun's position, not read from a sensor",
     "hourly_shade_night": "Shade the night hours",
     "hourly_forecast_step_hint": "Take every nth hour — 3 turns 24 hours into eight columns",
+    "hourly_group": "Combine the hours in a step",
+    "hourly_group_hint": "Rainfall is added up, and the strongest wind and the worst weather win. Off: every nth hour is taken",
     "hourly_forecast_step": "Step (hours)",
     "hourly_mode_hint": "With both, a pair of tabs lets you switch",
     "hourly_mode_both": "Both, with tabs",

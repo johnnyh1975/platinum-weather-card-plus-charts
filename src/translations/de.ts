@@ -133,6 +133,8 @@ const de: Translation = {
     "hourly_shade_night_hint": "Aus dem Sonnenstand berechnet, nicht von einem Sensor",
     "hourly_shade_night": "Nachtstunden abdunkeln",
     "hourly_forecast_step_hint": "Jede n-te Stunde — 3 macht aus 24 Stunden acht Spalten",
+    "hourly_group": "Stunden eines Schritts zusammenfassen",
+    "hourly_group_hint": "Der Niederschlag wird addiert, der stärkste Wind und das schlechteste Wetter gewinnen. Aus: jede n-te Stunde wird genommen",
     "hourly_forecast_step": "Schritt (Stunden)",
     "hourly_mode_hint": "Bei beiden wird per Tab umgeschaltet",
     "hourly_mode_both": "Beide, mit Tabs",
