@@ -20,6 +20,7 @@ import type { timeFormat, WeatherCardConfig, HassFormatEntityState } from './typ
 import { ForecastEvent, subscribeForecast, getForecast, ForecastAttribute } from './weather';
 
 import { CARD_VERSION } from './const';
+import { sectionNames } from './types';
 import { tCard, tMoonPhase, tSager, tUnit, tWarning, tWindDirections, tZambretti } from './translations';
 import { zambrettiLetter, pressureToHpa, seaLevelPressure, windSpeedToKmh, tidalTrendHpaPerHour, cloudCoverFraction, cloudCoverOktas, sunElevation } from './zambretti';
 import { sagerForecast } from './sager';
@@ -288,6 +289,10 @@ export class PlatinumWeatherCard extends LitElement {
       name: 'Weather',
       forecast_type: 'daily',  // default if not provided
       ...config,
+      // The README documents this order as the default, but only the editor ever
+      // wrote it: a card configured in YAML without section_order rendered as an
+      // empty frame with no warning. The card's own copy only, never written back.
+      section_order: config.section_order ?? [...sectionNames],
     };
 
     // A weather_entity on its own is a complete instruction: the strip's six

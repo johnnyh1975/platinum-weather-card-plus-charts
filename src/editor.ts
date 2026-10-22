@@ -162,7 +162,7 @@ export class WeatherCardEditor extends LitElement implements LovelaceCardEditor 
     }
 
     // Remane slot entries
-    for (const slot of ['slot_l1, slot_l2, slot_l3, slot_l4, slot_l5, slot_l6, slot_l7, slot_l8, slot_r1, slot_r2, slot_r3, slot_r4, slot_r5, slot_r6, slot_r7, slot_r8']) {
+    for (const slot of ['slot_l1', 'slot_l2', 'slot_l3', 'slot_l4', 'slot_l5', 'slot_l6', 'slot_l7', 'slot_l8', 'slot_r1', 'slot_r2', 'slot_r3', 'slot_r4', 'slot_r5', 'slot_r6', 'slot_r7', 'slot_r8']) {
       if (tmpConfig[slot] === 'daytime_high') tmpConfig[slot] = 'forecast_max';
       if (tmpConfig[slot] === 'daytime_low') tmpConfig[slot] = 'forecast_min';
     }
