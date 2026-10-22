@@ -46,6 +46,20 @@ The two cards register under different names, so you can try this one beside the
 <details>
 <summary><strong>Changelog</strong></summary>
 
+**v2.5.2**
+
+**A `weather_entity` on its own is enough for the daily strip** (#24, reported by @alanmilinovic). The strip reads six per-day settings: icon, summary, minimum, maximum, chance of rain and possible rain. Pointed at a weather entity they can only ever be that entity, and leaving them out gave an empty strip that said nothing about why. When you have set none of them, the card now treats them as the weather entity, in its own copy of the configuration and never written back to yours. Set any one of them, to a sensor or to the weather entity, and nothing is filled in, so setups with per-day sensors are untouched. Warnings about forecast attributes are for settings you made, so they are not raised for keys the card supplied.
+
+**`forecast_type: hourly` no longer empties the strip.** The strip takes one forecast entry for each day (two, day and night, for `twice_daily`), and hourly data has up to 24 entries a day, so it was left with nothing, and the charts, which read the same forecast, with it. The card now asks Home Assistant for the daily forecast when `hourly` is stored, and the editor no longer offers *Hourly* as a forecast type: the hours have their own section and their own subscription, which this does not touch. A configuration that still says hourly is read as daily, and shown as daily in the editor.
+
+The configuration posted in #24, exactly as it was, now draws its days without any change to it. The reporter confirmed it on his own OpenWeatherMap setup, and I tried it on mine with Met.no. Fourteen new tests run the card itself; eight of them fail on the old code, and the rest guard what must not change: per-day sensors, partly configured keys, `twice_daily` and the hourly view.
+
+**Also**
+- The README now starts with the description and the badges, and has a section on where the days come from
+- The YAML reference lists the per-day keys by name (`entity_forecast_icon_1` and the rest), which it only did by editor label before, and `card_config_version`
+
+---
+
 **v2.5.1**
 
 **The charts now draw from per-day sensors** (#23, second report, from @BJReplay). A card configured the way the original Platinum Weather Card was — per-day sensors, `entity_forecast_icon_1` and the rest, no weather entity — drew its forecast strip but no chart. The charts read only a weather entity's forecast, found none, and drew nothing, with no message; and because the strip hides its own temperature and rain text when a chart is switched on, someone who had just migrated lost the figures from the columns and got no chart in their place, until they set a weather entity. The charts now read the same sensors as the strip, over the same days. A chart whose sensor is not configured is left out, rather than drawn as a line of zeroes.
@@ -996,6 +1010,7 @@ Almost all settings can be configured in the GUI editor. The YAML reference belo
 | Variable | Type | Default | Description |
 | -------- | ---- | ------- | ----------- |
 | `type` | String | — | Must be `custom:platinum-weather-card-plus-charts` |
+| `card_config_version` | Number | — | Written by the editor to record the configuration format it has already migrated. Leave it as it is |
 | `section_order` | List | overview, extended, slots, daily_forecast, charts | Section display order |
 | `show_section_overview` | Boolean | `true` | Show/hide overview section |
 | `show_section_extended` | Boolean | `true` | Show/hide extended section |
@@ -1156,7 +1171,13 @@ Default slot values: l1=`forecast_max`, l2=`forecast_min`, l3=`wind`, l4=`pressu
 | `option_show_current_day` | Boolean | `false` | Include today in forecast strip |
 | `option_daily_forecast_date` | Boolean | `false` | Show a locale-formatted date (e.g. 13.07) next to the day name |
 | `option_show_forecast_wind` | Boolean | `false` | Show forecast wind speed/direction in each column |
-| `entity_summary_1` | String | none | Weather summary sensor for day 1 tooltip (auto-incremented for each day) |
+| `entity_forecast_icon_1` | String | none | Condition icon for day 1: a weather entity, or the first of a numbered series of sensors (auto-incremented for each day). Unless you set any of the six `entity_*_1` keys, they are `weather_entity` |
+| `entity_forecast_min_1` | String | none | Minimum temperature for day 1 (auto-incremented for each day) |
+| `entity_forecast_max_1` | String | none | Maximum temperature for day 1 (auto-incremented for each day) |
+| `entity_pop_1` | String | none | Chance of rain for day 1 (auto-incremented for each day) |
+| `entity_pos_1` | String | none | Possible amount of rain for day 1 (auto-incremented for each day) |
+| `entity_summary_1` | String | none | Weather summary for day 1, also used in the hover tooltip (auto-incremented for each day) |
+| `entity_fire_danger_1` | String | none | Fire danger for day 1, vertical layout only (auto-incremented for each day) |
 | `entity_extended_1` | String | none | Extended forecast text for day 1, vertical layout (auto-incremented for each day) |
 | `daily_extended_use_attr` | Boolean | `false` | Read the extended forecast text from an attribute of `entity_extended_1` instead of its state |
 | `daily_extended_name_attr` | String | none | Name of that attribute |
