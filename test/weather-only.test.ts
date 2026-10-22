@@ -88,6 +88,36 @@ describe('a weather_entity that is not there', () => {
   });
 });
 
+describe('what a weather entity gives, and what it does not', () => {
+  it('fills the chance of rain and the rain amount from today\'s forecast', async () => {
+    // seen in the card picker's preview: the slot was all dashes while the strip beside it had the figures
+    const el = await mount({ ...only, slot_r2: 'popforecast' });
+    const first = makeForecast(6, 0)[0] as { precipitation_probability: number };
+    expect(slot(el, 'popforecast')).toMatch(new RegExp(`${first.precipitation_probability}\\s*%`));
+    expect(slot(el, 'popforecast')).not.toContain('---');
+  });
+  it('leaves out "(Gust ---)" when the provider has no gusts, rather than printing dashes', async () => {
+    const { wind_gust_speed: _g, ...rest } = attrs;
+    const el = await mount(only, { [W]: { state: 'cloudy', attributes: rest }, 'sun.sun': states()['sun.sun'] });
+    expect(slot(el, 'wind')).toContain('17');
+    expect(slot(el, 'wind')).not.toMatch(/gust/i);
+  });
+  it('still shows the gusts where the provider has them', async () => {
+    const el = await mount(only);
+    expect(slot(el, 'wind')).toMatch(/gust/i);
+    expect(slot(el, 'wind')).toContain('29');
+  });
+  it('leaves a gust setting the user wrote alone, dashes and all', async () => {
+    const { wind_gust_speed: _g, ...rest } = attrs;
+    const el = await mount({ ...only, entity_wind_speed: W, entity_wind_gust: W }, { [W]: { state: 'cloudy', attributes: rest }, 'sun.sun': states()['sun.sun'] });
+    expect(slot(el, 'wind')).toMatch(/gust/i);
+  });
+  it('counts a rain sensor the user set as theirs: nothing else is filled in around it', async () => {
+    const el = await mount({ ...only, entity_pop: 'sensor.chance' }, states({ 'sensor.chance': { state: '40' } }));
+    expect(el._config.entity_humidity).toBeUndefined();
+  });
+});
+
 describe('when any measurement is the user\'s own', () => {
   it('fills in none of the others — a station beside a forecast is a choice', async () => {
     const el = await mount({ ...only, entity_temperature: 'sensor.station' }, states({ 'sensor.station': { state: '9.5', attributes: { unit_of_measurement: '°C' } } }));

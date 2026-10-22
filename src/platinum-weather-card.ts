@@ -32,7 +32,7 @@ const MEASUREMENT_KEYS = [
   'entity_forecast_icon', 'entity_temperature', 'entity_apparent_temp', 'entity_humidity',
   'entity_pressure', 'entity_visibility', 'entity_wind_bearing', 'entity_wind_speed',
   'entity_wind_gust', 'entity_uv_index', 'entity_dew_point', 'entity_cloud_cover',
-  'entity_forecast_min', 'entity_forecast_max',
+  'entity_forecast_min', 'entity_forecast_max', 'entity_pop', 'entity_pos',
 ] as const;
 
 // The six keys the daily forecast strip reads each day from. For a weather entity
@@ -3085,7 +3085,9 @@ export class PlatinumWeatherCard extends LitElement {
     const bearing = this._config.entity_wind_bearing ? html`<div class="slot-text">${this.currentWindBearing}&nbsp;</div>` : "";
     const units = html`<div class="slot-text unit">${this.currentWindSpeedUnit}</div>`;
     const speed = this._config.entity_wind_speed ? html`<div class="slot-text">${this.currentWindSpeed}</div>${units}&nbsp;` : "";
-    const gust = this._config.entity_wind_gust && this._config.option_show_gust_in_wind !== false ? html`<div class="slot-text">(${this.localeTextGust} ${this.currentWindGust}</div>${units})` : "";
+    // supplied by the card, and the provider gives no gusts: no "(Gust ---)", the way a missing feels-like leaves no line
+    const noGusts = this._impliedKeys.has('entity_wind_gust') && this.currentWindGust === '---';
+    const gust = this._config.entity_wind_gust && this._config.option_show_gust_in_wind !== false && !noGusts ? html`<div class="slot-text">(${this.localeTextGust} ${this.currentWindGust}</div>${units})` : "";
     return html`
       <li data-slot="wind">
         <div class="slot">
