@@ -25,11 +25,22 @@ The card is in the HACS default store:
 1. HACS → search for **Platinum Weather Card Plus Charts**
 2. Download
 3. Hard-refresh your browser
-4. Add the card to a dashboard, with the visual editor or in YAML:
+4. Add the card to a dashboard. The card picker shows a preview and fills the card in with one of your weather entities, so you can often just add it. Or in YAML:
 
    ```yaml
    type: custom:platinum-weather-card-plus-charts
+   weather_entity: weather.home
+   section_order: [overview, slots, daily_forecast, charts]
+   show_section_charts: true
+   option_show_temperature_chart: true
+   option_show_precipitation_chart: true
    ```
+
+### With just a weather entity
+
+A card with a `weather_entity` and nothing else to read works. The overview, the slots, the days and the charts all take their figures from it: temperature, feels-like, humidity, pressure, wind and gusts, visibility, UV index, cloud cover and today's high and low from its attributes, the dew point for the comfort word (with the comfort option on), the condition icon from its state, and the days from its forecast. What a provider does not give shows as `---`, and the feels-like line is left out.
+
+Add sensors and they are your choice, one group at a time. Set any one of the measurement settings (`entity_temperature`, `entity_humidity` and the rest, listed on the `weather_entity` row of the YAML reference) and none of the others is filled in for you; the same goes for the six per-day settings (`entity_forecast_icon_1` and its siblings). So a weather station beside a forecast stays exactly what you made it. None of this is written to your configuration.
 
 ### Coming from the original Platinum Weather Card?
 
@@ -45,6 +56,18 @@ The two cards register under different names, so you can try this one beside the
 
 <details>
 <summary><strong>Changelog</strong></summary>
+
+**v2.6.0**
+
+**A weather entity is all the card needs.** A card with a `weather_entity` and no sensors showed the daily strip (since 2.5.2) and `---` everywhere else, although the card could already read each figure from a weather entity when each setting was pointed at it by hand. Now, when you have set none of the measurement settings (`entity_forecast_icon`, `entity_temperature`, `entity_apparent_temp`, `entity_humidity`, `entity_pressure`, `entity_visibility`, `entity_wind_bearing`, `entity_wind_speed`, `entity_wind_gust`, `entity_uv_index`, `entity_dew_point`, `entity_cloud_cover`, `entity_forecast_min` and `entity_forecast_max`), the card treats them as the weather entity, in its own copy of the configuration and never written back to yours. Set any one of them, to a sensor or to the weather entity, and nothing is filled in around it: the same rule as for the six per-day settings, so a weather station beside a forecast stays exactly what you made it. A provider that does not give a figure shows `---`, and the feels-like line is left out rather than printed as dashes.
+
+Three readings the card could not take from a weather entity now work: the **UV index**, the **dew point** (for the comfort word) and the **cloud cover**. A weather entity's own **visibility unit** is used, where the card used to assume the system's.
+
+**Adding the card from the picker now works.** The picker shows a live preview, and a new card comes with one of your weather entities already in it, one that can do daily forecasts if there is one: the overview, the slots, the days and the charts, all from that entity. Before, it came out empty and every field had to be filled in by hand, which is why an earlier attempt at a preview was dropped. With no weather entity at all it is still left empty for the editor.
+
+Seventeen new tests run the card itself; eleven of them fail on the old code, and the rest guard what must not change: a user's own sensors, a weather entity that is not there, a provider without a feels-like.
+
+---
 
 **v2.5.2**
 
@@ -1165,7 +1188,7 @@ Default slot values: l1=`forecast_max`, l2=`forecast_min`, l3=`wind`, l4=`pressu
 
 | Variable | Type | Default | Description |
 | -------- | ---- | ------- | ----------- |
-| `weather_entity` | String | — | Main weather entity for forecasts. On its own it is enough: unless you set any of the six `entity_*_1` keys, they are this entity |
+| `weather_entity` | String | — | Main weather entity. On its own it is enough: unless you set any of the six `entity_*_1` keys, they are this entity, and unless you set any of `entity_forecast_icon`, `entity_temperature`, `entity_apparent_temp`, `entity_humidity`, `entity_pressure`, `entity_visibility`, `entity_wind_bearing`, `entity_wind_speed`, `entity_wind_gust`, `entity_uv_index`, `entity_dew_point`, `entity_cloud_cover`, `entity_forecast_min` or `entity_forecast_max`, those are too |
 | `forecast_type` | String | `daily` | `daily` or `twice_daily`. An existing `hourly` is read as `daily`: the strip needs one entry for each day |
 | `daily_forecast_layout` | String | `horizontal` | `horizontal` or `vertical` |
 | `daily_forecast_days` | Number | `5` | Days to show: 1–5 (horizontal), 1–7 (vertical) |

@@ -24,6 +24,17 @@ import { tCard, tMoonPhase, tSager, tUnit, tWarning, tWindDirections, tZambretti
 import { zambrettiLetter, pressureToHpa, seaLevelPressure, windSpeedToKmh, tidalTrendHpaPerHour, cloudCoverFraction, cloudCoverOktas, sunElevation } from './zambretti';
 import { sagerForecast } from './sager';
 
+// What the overview and the slots read their figures from: today's condition, the
+// measurements, and today's high and low. A card that has a weather_entity and
+// none of these takes them all from that entity, which the card can already read
+// for every one of them; see setConfig().
+const MEASUREMENT_KEYS = [
+  'entity_forecast_icon', 'entity_temperature', 'entity_apparent_temp', 'entity_humidity',
+  'entity_pressure', 'entity_visibility', 'entity_wind_bearing', 'entity_wind_speed',
+  'entity_wind_gust', 'entity_uv_index', 'entity_dew_point', 'entity_cloud_cover',
+  'entity_forecast_min', 'entity_forecast_max',
+] as const;
+
 // The six keys the daily forecast strip reads each day from. For a weather entity
 // they are all that entity; for per-day sensors, each is the first of a numbered series.
 const FORECAST_DAY_KEYS = [
@@ -45,6 +56,8 @@ console.info(
   type: 'platinum-weather-card-plus-charts',
   name: 'Platinum Weather Card Plus Charts',
   description: 'An fully customisable weather card with a GUI configuration',
+  // a live preview in the picker, from getStubConfig() below
+  preview: true,
 });
 
 
@@ -64,8 +77,25 @@ export class PlatinumWeatherCard extends LitElement {
     return document.createElement('platinum-weather-card-plus-charts-editor') as LovelaceCardEditor;
   }
 
-  public static getStubConfig(): Record<string, unknown> {
-    return {};
+  // What the card picker puts in a new card, and previews: a weather entity and the
+  // sections that need nothing else, which is the overview, the slots, the days and
+  // the charts. Home Assistant passes its entities; with none to offer there is
+  // nothing to preview, and the card is left empty for the editor, as before.
+  public static getStubConfig(hass?: HomeAssistant, entities?: string[]): Record<string, unknown> {
+    const states = hass?.states ?? {};
+    const ids = Object.keys(states).length > 0 ? Object.keys(states) : (entities ?? []);
+    const weather = ids.filter((id) => id.startsWith('weather.'));
+    // prefer one that can do days (the daily bit of supported_features): the strip and the charts are made of them
+    const entity = weather.find((id) => (Number(states[id]?.attributes?.supported_features) & 1) === 1) ?? weather[0];
+    if (!entity) return {};
+    return {
+      weather_entity: entity,
+      ...(states['sun.sun'] ? { entity_sun: 'sun.sun' } : {}),
+      section_order: ['overview', 'slots', 'daily_forecast', 'charts'],
+      show_section_charts: true,
+      option_show_temperature_chart: true,
+      option_show_precipitation_chart: true,
+    };
   }
 
   //tjl copied from HA front-end.  Supports subscribing to weather forecast events.
@@ -110,8 +140,8 @@ export class PlatinumWeatherCard extends LitElement {
   private static _lastDaylightCloud: { t: number; f: number } | null = null;
   // When it last rained, so a gap between showers does not read as fine weather.
   private static _lastRain: { t: number; rate: number } | null = null;
-  // True when the six per-day keys were supplied from weather_entity, not set by the user.
-  private _forecastKeysImplied = false;
+  // The keys supplied from weather_entity rather than set by the user.
+  private _impliedKeys = new Set<string>();
   // The last real gauge reading, for the icon: see _gaugeRateForIcon().
   private static _gaugeSeen: { entity: string; t: number; rate: number } | null = null;
 
@@ -215,11 +245,21 @@ export class PlatinumWeatherCard extends LitElement {
     // the user has set none of them, they are the weather entity — in the card's
     // own copy of the configuration, never written back. Any one of them set, to
     // a sensor or to a weather entity, is a choice and nothing is filled in.
-    this._forecastKeysImplied = false;
+    //
+    // The measurements follow the same rule, for the same reason: pointed at the
+    // weather entity, each is that entity's temperature, humidity and so on, and
+    // that is all a card with no sensors to read can mean. Here too any one of them
+    // set by the user is a choice (a station beside a forecast), and nothing is
+    // filled in around it.
+    this._impliedKeys = new Set<string>();
     const cfg = this._config as unknown as Record<string, unknown>;
-    if (cfg.weather_entity && !FORECAST_DAY_KEYS.some((k) => cfg[k])) {
-      for (const k of FORECAST_DAY_KEYS) cfg[k] = cfg.weather_entity;
-      this._forecastKeysImplied = true;
+    for (const family of [FORECAST_DAY_KEYS, MEASUREMENT_KEYS] as readonly (readonly string[])[]) {
+      if (cfg.weather_entity && !family.some((k) => cfg[k])) {
+        for (const k of family) {
+          cfg[k] = cfg.weather_entity;
+          this._impliedKeys.add(k);
+        }
+      }
     }
   }
 
@@ -493,7 +533,7 @@ export class PlatinumWeatherCard extends LitElement {
     Object.keys(this._config).forEach(entity => {
       if (entity.match(/^entity_/) !== null) {
         // keys the card supplied itself are not the user's to be warned about
-        if (this._forecastKeysImplied && (FORECAST_DAY_KEYS as readonly string[]).includes(entity)) return;
+        if (this._impliedKeys.has(entity)) return;
         if (this.hass.states[this._config[entity]] === undefined) {
           this._error.push(`'${entity}=${this._config[entity]}' not found`);
         }
@@ -504,7 +544,7 @@ export class PlatinumWeatherCard extends LitElement {
     //tjl add a few more configs to check if they are weather entities.
     for (const entityName of ['entity_forecast_icon_1', 'entity_summary_1', 'entity_forecast_min_1', 'entity_forecast_max_1', 
       'entity_pop_1', 'entity_pos_1', 'entity_extended_1']) {
-      if (this._forecastKeysImplied && (FORECAST_DAY_KEYS as readonly string[]).includes(entityName)) continue;
+      if (this._impliedKeys.has(entityName)) continue;
       if (this._config[entityName] !== undefined) {
         // tjl - build warning - says "entity" never used, so for now comment it out
       //const entity = this.hass.states[this._config[entityName]];
@@ -2395,9 +2435,11 @@ export class PlatinumWeatherCard extends LitElement {
   get slotUvIndex(): TemplateResult {
     const entity = this._config.entity_uv_index;
     const stateObj = entity ? this.hass.states[entity] : undefined;
-    const raw = stateObj ? Number(stateObj.state) : NaN;
-    const usable = stateObj !== undefined && stateObj.state !== 'unknown'
-      && stateObj.state !== 'unavailable' && isFinite(raw);
+    // a weather entity keeps it in an attribute; a sensor is its state
+    const fromWeather = !!entity && entity.match('^weather.') !== null;
+    const raw = stateObj ? Number(fromWeather ? stateObj.attributes?.uv_index : stateObj.state) : NaN;
+    const usable = stateObj !== undefined && (fromWeather || (stateObj.state !== 'unknown'
+      && stateObj.state !== 'unavailable')) && isFinite(raw);
     const display = usable ? String(Math.round(raw)) : '---';
     const colour = !usable ? ''
       : raw < 3 ? '#4caf50'
@@ -3060,7 +3102,12 @@ export class PlatinumWeatherCard extends LitElement {
 
   get slotVisibility(): TemplateResult {
     const vis = this.currentVisibility;
-    const units = vis !== "---" ? this.getUOM('length') : "";
+    // a weather entity says what its visibility is in
+    const visEntity = this._config.entity_visibility;
+    const visUnit = visEntity && visEntity.match('^weather.') !== null
+      ? this.hass.states[visEntity]?.attributes?.visibility_unit as string | undefined
+      : undefined;
+    const units = vis !== "---" ? (visUnit ?? this.getUOM('length')) : "";
     return html`
       <li data-slot="visibility">
         <div class="slot">
@@ -3105,10 +3152,12 @@ export class PlatinumWeatherCard extends LitElement {
     const entity = this._config.entity_dew_point;
     if (!entity) return null;
     const stateObj = this.hass.states[entity];
-    if (!stateObj || stateObj.state === 'unknown' || stateObj.state === 'unavailable') return null;
-    let dew = Number(stateObj.state);
+    const fromWeather = entity.match('^weather.') !== null;
+    if (!stateObj || (!fromWeather && (stateObj.state === 'unknown' || stateObj.state === 'unavailable'))) return null;
+    let dew = Number(fromWeather ? stateObj.attributes?.dew_point : stateObj.state);
     if (!isFinite(dew)) return null;
-    if (String(stateObj.attributes?.unit_of_measurement ?? '').includes('F')) {
+    const unit = fromWeather ? stateObj.attributes?.temperature_unit : stateObj.attributes?.unit_of_measurement;
+    if (String(unit ?? '').includes('F')) {
       dew = (dew - 32) * 5 / 9;
     }
     // US National Weather Service bands. They hold whatever the temperature is:
@@ -3264,8 +3313,9 @@ export class PlatinumWeatherCard extends LitElement {
       // no usable measurement: show the provider's value if one is configured
       const fallback = this._config.entity_cloud_cover;
       if (fallback && this.hass.states[fallback]) {
-        const state = this.hass.states[fallback].state;
-        if (state !== 'unknown' && state !== 'unavailable') {
+        const fromWeather = fallback.match('^weather.') !== null;
+        const state = fromWeather ? this.hass.states[fallback].attributes?.cloud_coverage : this.hass.states[fallback].state;
+        if (state !== undefined && state !== 'unknown' && state !== 'unavailable' && isFinite(Number(state))) {
           display = `${Math.round(Number(state))}%`;
         }
       }
@@ -3406,6 +3456,8 @@ export class PlatinumWeatherCard extends LitElement {
     const digits = this._config.option_show_overview_decimals === true ? 1 : 0;
     //tjl Feature Add - Add capability to get Apparent Temperature from weather entity attribute
     if ( entity && this.hass.states[entity] ){
+      // supplied by the card, and the provider has none: say nothing, rather than dashes
+      if (this._impliedKeys.has('entity_apparent_temp') && this.hass.states[entity].attributes.apparent_temperature === undefined) return '';
       return entity && this.hass.states[entity]
         ? entity.match('^weather.') === null
           ? (Number(this.hass.states[entity].state)).toLocaleString(this.locale, { minimumFractionDigits: digits, maximumFractionDigits: digits })
