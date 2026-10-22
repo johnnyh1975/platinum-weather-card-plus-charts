@@ -176,3 +176,41 @@ describe('day and night follow the sun entity, as Home Assistant does', () => {
     expect(iconSrc(await sunny('unknown', -2))).toMatch(/night/);
   });
 });
+
+describe('the icon packs and the names the card can produce', () => {
+  // The correction chooses its own icon names — plain overcast among them — and each
+  // pack has a table from those names to its files. The Meteocons tables had no entry
+  // for the overcast band, so a provider's rain overruled by a dry gauge under a thick
+  // sky drew the pack's "not available" icon: N/A where the weather should be, on the
+  // card of anyone using Meteocons (22 October, 09:49).
+  const CONDITIONS = ['sunny', 'clear-night', 'partlycloudy', 'cloudy', 'rainy', 'pouring', 'snowy', 'snowy-rainy', 'fog', 'hail', 'lightning', 'lightning-rainy', 'windy', 'windy-variant', 'exceptional'];
+  const BANDS = ['clear', 'cloudy-1', 'cloudy-2', 'cloudy-3'].flatMap((b) => [`${b}-day`, `${b}-night`]);
+  const PACKS = ['default', 'meteocons-fill', 'meteocons-line', 'ha-official', 'wcc-2'];
+
+  it('every pack has a real icon for every name the card can produce', async () => {
+    const lost: string[] = [];
+    for (const pack of PACKS) {
+      const el = (await mount({ config: { icon_pack: pack } })) as unknown as Record<string, (n: string) => string>;
+      const names = new Set<string>([...BANDS, 'cloudy']);
+      for (const c of CONDITIONS) names.add(el._weatherIcon(c));
+      // 'unknown' is the card's own name for a condition it does not recognise, and is meant to show N/A
+      for (const n of names) if (n !== 'unknown' && /not-available|unknown/.test(el._getIconUrl(n))) lost.push(`${pack}: ${n}`);
+    }
+    expect(lost, 'names that land on the "unknown" icon').toEqual([]);
+  });
+
+  it('draws overcast, not N/A, for rain overruled by a dry gauge under a thick sky — in both Meteocons packs', async () => {
+    for (const pack of ['meteocons-fill', 'meteocons-line']) {
+      const el = await mount({ condition: 'rainy', rain: '0.0', solar: '27.6', sunState: 'above_horizon', elevation: 22, config: { icon_pack: pack } });
+      expect(iconSrc(el), pack).not.toMatch(/not-available/);
+      expect(iconSrc(el), pack).toMatch(/overcast|cloudy/);
+    }
+  });
+
+  it('and the same after dark, when the sky cannot be measured', async () => {
+    for (const pack of ['meteocons-fill', 'meteocons-line']) {
+      const el = await mount({ condition: 'rainy', rain: '0.0', solar: '0', sunState: 'below_horizon', elevation: -22, config: { icon_pack: pack } });
+      expect(iconSrc(el), pack).not.toMatch(/not-available/);
+    }
+  });
+});

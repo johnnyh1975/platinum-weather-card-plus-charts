@@ -4006,6 +4006,10 @@ export class PlatinumWeatherCard extends LitElement {
       'cloudy-1-night':                 'partly-cloudy-night',
       'cloudy-2-day':                   'partly-cloudy-day',
       'cloudy-2-night':                 'partly-cloudy-night',
+      // the overcast band, which the cloud correction picks under a thick sky; without
+      // these two the card drew the pack's "not available" icon in its place
+      'cloudy-3-day':                   'overcast-day',
+      'cloudy-3-night':                 'overcast-night',
       'cloudy':                         'cloudy',
       'haze-day':                       'haze',
       'haze-night':                     'haze',

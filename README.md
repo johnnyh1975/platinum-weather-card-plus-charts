@@ -52,6 +52,8 @@ The two cards register under different names, so you can try this one beside the
 
 **`forecast_type: hourly` no longer empties the strip.** The strip takes one forecast entry for each day (two, day and night, for `twice_daily`), and hourly data has up to 24 entries a day, so it was left with nothing, and the charts, which read the same forecast, with it. The card now asks Home Assistant for the daily forecast when `hourly` is stored, and the editor no longer offers *Hourly* as a forecast type: the hours have their own section and their own subscription, which this does not touch. A configuration that still says hourly is read as daily, and shown as daily in the editor.
 
+**The overcast icon with the Meteocons packs.** When the cloud correction picks the thickest band, as it does for a provider's rain overruled by a dry gauge under a thick sky, the two Meteocons packs had no file for it and drew the pack's "not available" icon: N/A where the weather should be. It now maps to Meteocons' own overcast icon. A new test checks, for every icon pack, that every name the card can produce lands on a real icon.
+
 The configuration posted in #24, exactly as it was, now draws its days without any change to it. The reporter confirmed it on his own OpenWeatherMap setup, and I tried it on mine with Met.no. Fourteen new tests run the card itself; eight of them fail on the old code, and the rest guard what must not change: per-day sensors, partly configured keys, `twice_daily` and the hourly view.
 
 **Also**
