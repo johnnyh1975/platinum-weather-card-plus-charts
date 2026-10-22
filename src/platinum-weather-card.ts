@@ -31,6 +31,30 @@ const FORECAST_DAY_KEYS = [
   'entity_forecast_max_1', 'entity_pop_1', 'entity_pos_1',
 ] as const;
 
+// Readings a weather entity already carries. When weather_entity is set and the
+// user has chosen no source for one of these, the weather entity is it —
+// provided the entity actually reports the attribute, so a provider without,
+// say, apparent_temperature does not produce a "Feels like ---" line. `null`
+// means the reading is the entity's state or its forecast, which always exist.
+const CURRENT_KEY_ATTRS: ReadonlyArray<readonly [string, string | null]> = [
+  ['entity_forecast_icon', null],
+  ['entity_summary', null],
+  ['entity_forecast_max', null],
+  ['entity_forecast_min', null],
+  ['entity_pop', null],
+  ['entity_pos', null],
+  ['entity_temperature', 'temperature'],
+  ['entity_apparent_temp', 'apparent_temperature'],
+  ['entity_humidity', 'humidity'],
+  ['entity_pressure', 'pressure'],
+  ['entity_visibility', 'visibility'],
+  ['entity_wind_bearing', 'wind_bearing'],
+  ['entity_wind_speed', 'wind_speed'],
+  ['entity_wind_gust', 'wind_gust_speed'],
+  ['entity_uv_index', 'uv_index'],
+  ['entity_dew_point', 'dew_point'],
+];
+
 
 /* eslint no-console: 0 */
 console.info(
@@ -112,6 +136,10 @@ export class PlatinumWeatherCard extends LitElement {
   private static _lastRain: { t: number; rate: number } | null = null;
   // True when the six per-day keys were supplied from weather_entity, not set by the user.
   private _forecastKeysImplied = false;
+  // The configuration exactly as the user wrote it, and the current-condition
+  // keys the card has filled in from weather_entity on top of it.
+  private _userConfig: Record<string, unknown> = {};
+  private _impliedKeys = new Set<string>();
   // The last real gauge reading, for the icon: see _gaugeRateForIcon().
   private static _gaugeSeen: { entity: string; t: number; rate: number } | null = null;
 
@@ -203,6 +231,8 @@ export class PlatinumWeatherCard extends LitElement {
       getLovelace().setEditMode(true);
     }
 
+    this._userConfig = { ...config } as Record<string, unknown>;
+    this._impliedKeys = new Set();
     this._config = {
       name: 'Weather',
       forecast_type: 'daily',  // default if not provided
@@ -1969,8 +1999,37 @@ export class PlatinumWeatherCard extends LitElement {
     return html`${tabs}${days}`;
   }
 
+  // The daily strip already treats a lone weather_entity as its source (#24);
+  // this does the same for the current conditions, in the card's own copy of the
+  // configuration only. It runs on every render because whether an attribute
+  // exists is only known once hass is, and a provider can start or stop
+  // reporting one. A key the user set, to anything, is never touched.
+  private _applyWeatherDefaults(): void {
+    const cfg = this._config as unknown as Record<string, unknown>;
+    const weather = this._config.weather_entity;
+    const stateObj = weather ? this.hass.states[weather] : undefined;
+    for (const [key, attr] of CURRENT_KEY_ATTRS) {
+      if (this._userConfig[key]) continue;
+      const available = stateObj !== undefined
+        && (attr === null || stateObj.attributes?.[attr] !== undefined);
+      if (available) {
+        cfg[key] = weather;
+        this._impliedKeys.add(key);
+      } else if (this._impliedKeys.has(key)) {
+        delete cfg[key];
+        this._impliedKeys.delete(key);
+      }
+    }
+    // sun.sun is the one sun entity Home Assistant has; there is nothing to choose.
+    if (!this._userConfig.entity_sun && this.hass.states['sun.sun']) {
+      cfg.entity_sun = 'sun.sun';
+      this._impliedKeys.add('entity_sun');
+    }
+  }
+
   protected render(): TemplateResult | void {
     const htmlCode: TemplateResult[] = [];
+    this._applyWeatherDefaults();
 
     //tjl added. Extend Hass to include "formatEntityState"
     this.hassExtended = this.hass as HassFormatEntityState;
@@ -2395,7 +2454,8 @@ export class PlatinumWeatherCard extends LitElement {
   get slotUvIndex(): TemplateResult {
     const entity = this._config.entity_uv_index;
     const stateObj = entity ? this.hass.states[entity] : undefined;
-    const raw = stateObj ? Number(stateObj.state) : NaN;
+    const fromWeather = entity?.startsWith('weather.') === true;
+    const raw = stateObj ? Number(fromWeather ? stateObj.attributes?.uv_index : stateObj.state) : NaN;
     const usable = stateObj !== undefined && stateObj.state !== 'unknown'
       && stateObj.state !== 'unavailable' && isFinite(raw);
     const display = usable ? String(Math.round(raw)) : '---';
@@ -3106,9 +3166,11 @@ export class PlatinumWeatherCard extends LitElement {
     if (!entity) return null;
     const stateObj = this.hass.states[entity];
     if (!stateObj || stateObj.state === 'unknown' || stateObj.state === 'unavailable') return null;
-    let dew = Number(stateObj.state);
+    const fromWeather = entity.startsWith('weather.');
+    let dew = Number(fromWeather ? stateObj.attributes?.dew_point : stateObj.state);
     if (!isFinite(dew)) return null;
-    if (String(stateObj.attributes?.unit_of_measurement ?? '').includes('F')) {
+    const dewUnit = fromWeather ? stateObj.attributes?.temperature_unit : stateObj.attributes?.unit_of_measurement;
+    if (String(dewUnit ?? '').includes('F')) {
       dew = (dew - 32) * 5 / 9;
     }
     // US National Weather Service bands. They hold whatever the temperature is:

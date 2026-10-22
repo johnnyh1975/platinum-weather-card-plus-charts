@@ -437,6 +437,20 @@ Features added along the way: the `moon` slot with its phase icons, `option_show
 
 ---
 
+
+## Quick start
+
+```yaml
+type: custom:platinum-weather-card-plus-charts
+weather_entity: weather.home
+```
+
+That is a complete card. Every reading a weather entity already carries is taken from it unless you set a source of your own: the condition icon and text, temperature, feels-like, humidity, pressure, visibility, wind direction, speed and gust, UV index, dew point, today's forecast maximum and minimum and the chance of rain — and the daily strip, as before. `sun.sun` is used for the sun slots.
+
+Only what the entity actually reports is filled in. A provider without `apparent_temperature` gets no feels-like line rather than one reading `---`, and if it starts reporting one later, the line appears. Nothing is written back into your configuration, so the editor still shows these fields as empty.
+
+Set any of these keys yourself — to a sensor from your own station, say — and that choice wins for that reading alone; the rest still come from the weather entity.
+
 # Sections
 
 <p align="center">
