@@ -108,6 +108,63 @@ describe('when any measurement is the user\'s own', () => {
   });
 });
 
+describe('the card picker, by entity', () => {
+  // Home Assistant 2026.6 asks every window.customCards entry for getEntitySuggestion(hass, entityId)
+  // when an entity is picked in "Add to dashboard > By entity", and lists the cards that answer under
+  // Community. A card that has no such function is simply not there.
+  type Suggestion = { label?: string; config: Record<string, unknown> };
+  type Entry = { type: string; getEntitySuggestion?: (hass: unknown, entityId: string) => Suggestion | Suggestion[] | null };
+  const entry = () => (window as unknown as { customCards: Entry[] }).customCards.find((c) => c.type === 'platinum-weather-card-plus-charts')!;
+  const suggest = (hass: unknown, id: string) => entry().getEntitySuggestion?.(hass, id);
+  const hassWith = (features?: number) => makeHass({
+    'weather.other': { state: 'cloudy', attributes: { supported_features: 3 } },
+    [W]: { state: 'cloudy', attributes: features === undefined ? { temperature: 12 } : { temperature: 12, supported_features: features } },
+    'sun.sun': { state: 'above_horizon', attributes: { elevation: 30 } },
+  });
+
+  it('is there at all, which is what puts the card in the list', () => {
+    expect(typeof entry().getEntitySuggestion).toBe('function');
+  });
+  it('is quiet about everything that is not a weather entity', () => {
+    const hass = makeHass({ 'light.lamp': { state: 'on' }, 'sensor.t': { state: '3' } });
+    expect(suggest(hass, 'light.lamp')).toBeNull();
+    expect(suggest(hass, 'sensor.t')).toBeNull();
+  });
+  it('suggests a card for the entity that was picked, not the first one it finds', () => {
+    const s = suggest(hassWith(1), W) as Suggestion;
+    expect(s.config.type).toBe('custom:platinum-weather-card-plus-charts');
+    expect(s.config.weather_entity).toBe(W);
+  });
+  it('answers at once: Home Assistant does not wait for it', () => {
+    expect(suggest(hassWith(1), W)).not.toBeInstanceOf(Promise);
+  });
+  it('offers one variant for days only, and two where the entity can also do hours', () => {
+    expect(Array.isArray(suggest(hassWith(1), W))).toBe(false);
+    const both = suggest(hassWith(3), W) as Suggestion[];
+    expect(both).toHaveLength(2);
+    expect(both.every((v) => typeof v.label === 'string' && v.label.length > 0), 'a variant without a label').toBe(true);
+    expect(both[0].config.entity_hourly).toBeUndefined();
+    expect(both[1].config.entity_hourly).toBe(W);
+    expect(both[1].config.show_section_hourly_forecast).toBe(true);
+  });
+  it('has nothing to suggest for an entity that cannot do days, where the strip and the charts would be empty', () => {
+    expect(suggest(hassWith(2), W)).toBeNull();
+  });
+  it('assumes it can, if the entity does not say', () => {
+    expect(suggest(hassWith(undefined), W)).not.toBeNull();
+  });
+  it('is a card that works as it stands, each variant', async () => {
+    const hass = makeHass(states(), { forecast: makeForecast(6, 0) } as never);
+    const variants = ([] as Suggestion[]).concat(suggest(hass, W) as Suggestion | Suggestion[]);
+    expect(variants.length).toBeGreaterThan(0);
+    for (const v of variants) {
+      const el = (await renderCard(baseConfig({ ...v.config } as never), hass)) as HTMLElement;
+      expect(q(el, '#current-temp-text'), v.label).toBe('12');
+      expect(el.shadowRoot?.querySelectorAll('.daily-forecast-horiz-section [class*=day]').length, `${v.label}: no days`).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('the card picker', () => {
   type Card = { getStubConfig: (hass?: unknown, entities?: string[]) => Record<string, unknown> };
   const cls = () => customElements.get('platinum-weather-card-plus-charts') as unknown as Card;

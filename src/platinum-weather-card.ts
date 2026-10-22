@@ -50,6 +50,27 @@ console.info(
   'color: white; font-weight: bold; background: dimgray',
 );
 
+// A new card made of nothing but a weather entity: the overview, the slots, the days
+// and the charts, which is everything that can be drawn from it alone. Shared by the
+// card picker's two ways in, the stub (By card) and the suggestion (By entity).
+function weatherEntityCard(hass: HomeAssistant | undefined, entity: string): Record<string, unknown> {
+  return {
+    weather_entity: entity,
+    ...(hass?.states?.['sun.sun'] ? { entity_sun: 'sun.sun' } : {}),
+    section_order: ['overview', 'slots', 'daily_forecast', 'charts'],
+    show_section_charts: true,
+    option_show_temperature_chart: true,
+    option_show_precipitation_chart: true,
+  };
+}
+
+// The forecast types a weather entity says it can do (the bits of supported_features:
+// 1 daily, 2 hourly, 4 twice daily), or undefined where it does not say.
+function forecastFeatures(hass: HomeAssistant | undefined, entity: string): number | undefined {
+  const features = hass?.states?.[entity]?.attributes?.supported_features;
+  return typeof features === 'number' ? features : undefined;
+}
+
 // This puts your card into the UI card picker dialog
 (window as any).customCards = (window as any).customCards || [];
 (window as any).customCards.push({
@@ -58,6 +79,24 @@ console.info(
   description: 'An fully customisable weather card with a GUI configuration',
   // a live preview in the picker, from getStubConfig() below
   preview: true,
+  // Home Assistant 2026.6 asks every card this when an entity is picked in
+  // "Add to dashboard > By entity", and lists the ones that answer under Community.
+  // It must answer at once, and should say nothing for an entity it cannot make
+  // sense of, or the picker fills with cards that mean nothing there.
+  getEntitySuggestion: (hass: HomeAssistant, entityId: string) => {
+    if (typeof entityId !== 'string' || entityId.split('.')[0] !== 'weather') return null;
+    const features = forecastFeatures(hass, entityId);
+    // no daily forecast, no strip and no charts: a card of that would be mostly empty
+    if (features !== undefined && (features & 1) === 0) return null;
+    const card = { type: 'custom:platinum-weather-card-plus-charts', ...weatherEntityCard(hass, entityId) };
+    if (features !== undefined && (features & 2) === 2) {
+      return [
+        { label: 'Daily forecast and charts', config: card },
+        { label: 'Daily and hourly forecast', config: { ...card, entity_hourly: entityId, show_section_hourly_forecast: true } },
+      ];
+    }
+    return { config: card };
+  },
 });
 
 
@@ -86,16 +125,9 @@ export class PlatinumWeatherCard extends LitElement {
     const ids = Object.keys(states).length > 0 ? Object.keys(states) : (entities ?? []);
     const weather = ids.filter((id) => id.startsWith('weather.'));
     // prefer one that can do days (the daily bit of supported_features): the strip and the charts are made of them
-    const entity = weather.find((id) => (Number(states[id]?.attributes?.supported_features) & 1) === 1) ?? weather[0];
+    const entity = weather.find((id) => ((forecastFeatures(hass, id) ?? 0) & 1) === 1) ?? weather[0];
     if (!entity) return {};
-    return {
-      weather_entity: entity,
-      ...(states['sun.sun'] ? { entity_sun: 'sun.sun' } : {}),
-      section_order: ['overview', 'slots', 'daily_forecast', 'charts'],
-      show_section_charts: true,
-      option_show_temperature_chart: true,
-      option_show_precipitation_chart: true,
-    };
+    return weatherEntityCard(hass, entity);
   }
 
   //tjl copied from HA front-end.  Supports subscribing to weather forecast events.

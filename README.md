@@ -25,7 +25,7 @@ The card is in the HACS default store:
 1. HACS → search for **Platinum Weather Card Plus Charts**
 2. Download
 3. Hard-refresh your browser
-4. Add the card to a dashboard. The card picker shows a preview and fills the card in with one of your weather entities, so you can often just add it. Or in YAML:
+4. Add the card to a dashboard. In *Add to dashboard*, pick a weather entity under *By entity* and the card is offered under *Community*, already set up for it (Home Assistant 2026.6 or later); under *By card* it has a preview, filled in with one of your weather entities. Or in YAML:
 
    ```yaml
    type: custom:platinum-weather-card-plus-charts
@@ -63,9 +63,9 @@ The two cards register under different names, so you can try this one beside the
 
 Three readings the card could not take from a weather entity now work: the **UV index**, the **dew point** (for the comfort word) and the **cloud cover**. A weather entity's own **visibility unit** is used, where the card used to assume the system's.
 
-**Adding the card from the picker now works.** The picker shows a live preview, and a new card comes with one of your weather entities already in it, one that can do daily forecasts if there is one: the overview, the slots, the days and the charts, all from that entity. Before, it came out empty and every field had to be filled in by hand, which is why an earlier attempt at a preview was dropped. With no weather entity at all it is still left empty for the editor.
+**Adding the card from the picker now works, both ways in.** In *Add to dashboard*, pick a weather entity under *By entity* and the card is offered under *Community* (Home Assistant 2026.6 and later), set up for the entity you picked: the overview, the slots, the days and the charts, all from that entity. Where the entity can also do hourly forecasts there are two variants, *Daily forecast and charts* and *Daily and hourly forecast*. An entity that cannot do daily forecasts is not offered the card, because the days and the charts would be empty; and nothing is offered for anything that is not a weather entity. Under *By card* the card has a live preview, filled in with one of your weather entities, one that can do days if there is one. Before, a new card came out empty and every field had to be filled in by hand, and it was never offered by entity at all. With no weather entity it is still left empty for the editor.
 
-Seventeen new tests run the card itself; eleven of them fail on the old code, and the rest guard what must not change: a user's own sensors, a weather entity that is not there, a provider without a feels-like.
+Twenty-five new tests run the card itself, and each way the picker finds the card is among them. They guard what must not change too: a user's own sensors, a weather entity that is not there, a provider without a feels-like, and an entity that does not say what it can do.
 
 ---
 
