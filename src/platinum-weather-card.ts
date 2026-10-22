@@ -317,6 +317,14 @@ export class PlatinumWeatherCard extends LitElement {
         }
       }
     }
+
+    // sun.sun is the only sun entity Home Assistant has, so a card that names none
+    // means it. Every reader checks the entity exists, so where the sun
+    // integration is not loaded this behaves exactly as no entity_sun did.
+    if (!cfg.entity_sun) {
+      cfg.entity_sun = 'sun.sun';
+      this._impliedKeys.add('entity_sun');
+    }
   }
 
 
